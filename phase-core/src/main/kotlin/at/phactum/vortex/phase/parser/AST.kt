@@ -1,8 +1,9 @@
 package at.phactum.vortex.phase.parser
 
-import at.phactum.vortex.phase.model.Block
+import java.io.File
 
 data class ParsedPage(
+    val file: File,
     val metadataBlock: DirectiveNode,
     val rootBlock: Node
 )

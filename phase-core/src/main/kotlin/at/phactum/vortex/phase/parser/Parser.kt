@@ -1,9 +1,10 @@
 package at.phactum.vortex.phase.parser
 
 import at.phactum.vortex.phase.exception.SyntaxException
+import java.io.File
 import java.util.*
 
-class Parser(val source: String, val filename: String = "") {
+class Parser(source: String, val file: File) {
     companion object {
         val LINE_SEPARATOR: String = System.lineSeparator()
     }
@@ -42,15 +43,16 @@ class Parser(val source: String, val filename: String = "") {
         if (scopes.size > 1)
             throw SyntaxException(
                 "Unexpected end of file. Some blocks were unclosed",
-                filename,
+                file,
                 lineNumber,
                 columnNumber
             )
 
         if (metadataBlock == null)
-            throw SyntaxException("Page must have a metadata block", filename, lineNumber, columnNumber)
+            throw SyntaxException("Page must have a metadata block", file, lineNumber, columnNumber)
 
         return ParsedPage(
+            file,
             metadataBlock!!,
             scopes.first()
         )
@@ -106,13 +108,13 @@ class Parser(val source: String, val filename: String = "") {
     private fun parseDirective(line: String) {
         val identifierColumn = columnNumber
         val identifier = tokenizeIdentifier()
-        val directiveType = DirectiveType.parse(identifier, filename, lineNumber, identifierColumn)
+        val directiveType = DirectiveType.parse(identifier, file, lineNumber, identifierColumn)
 
         if (directiveType == DirectiveType.END) {
             if (scopes.size <= 1)
                 throw SyntaxException(
                     "No block to end here. Too many @end directives",
-                    filename,
+                    file,
                     lineNumber,
                     identifierColumn - 1
                 )
@@ -123,7 +125,7 @@ class Parser(val source: String, val filename: String = "") {
                 if (metadataBlock != null)
                     throw SyntaxException(
                         "Page can only have a single metadata block",
-                        filename,
+                        file,
                         lineNumber,
                         identifierColumn - 1
                     )
@@ -141,7 +143,7 @@ class Parser(val source: String, val filename: String = "") {
         if (directiveType.hasValue && value.trim().isEmpty())
             throw SyntaxException(
                 "Directive $directiveType must have an inline value",
-                filename,
+                file,
                 lineNumber,
                 columnNumber
             )
@@ -150,7 +152,7 @@ class Parser(val source: String, val filename: String = "") {
         if (!directiveType.hasValue && value.trim().isNotEmpty())
             throw SyntaxException(
                 "Directive $directiveType must not have an inline value",
-                filename,
+                file,
                 lineNumber,
                 columnNumber
             )

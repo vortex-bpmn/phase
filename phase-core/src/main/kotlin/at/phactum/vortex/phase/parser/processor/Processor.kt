@@ -23,12 +23,13 @@ class Processor {
         return nodes.map { process(it) }
     }
 
-    fun processPage(page: ParsedPage): Page {
+    fun process(page: ParsedPage): Page {
         val rootBlock = process(page.rootBlock)
         if (rootBlock !is Block)
             throw ProcessorException("Page is expected to contain a top-level block. This should not happen")
 
         return Page(
+            page.file,
             processMetadata(page.metadataBlock),
             rootBlock
         )
