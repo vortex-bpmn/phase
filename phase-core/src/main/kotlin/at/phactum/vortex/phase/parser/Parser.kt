@@ -1,14 +1,11 @@
 package at.phactum.vortex.phase.parser
 
+import at.phactum.vortex.phase.Constants.LINE_SEPARATOR
 import at.phactum.vortex.phase.exception.SyntaxException
 import java.io.File
 import java.util.*
 
 class Parser(source: String, val file: File) {
-    companion object {
-        val LINE_SEPARATOR: String = System.lineSeparator()
-    }
-
     private var lines: Iterator<String> = source.split(LINE_SEPARATOR).iterator()
     private var currentLine: String = ""
     private var position: Int = 0

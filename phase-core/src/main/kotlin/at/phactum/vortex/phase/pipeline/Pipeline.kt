@@ -1,7 +1,8 @@
 package at.phactum.vortex.phase.pipeline
 
-import at.phactum.vortex.phase.consolidator.TreeBuilder
+import at.phactum.vortex.phase.Constants.PHASE_EXTENSION
 import at.phactum.vortex.phase.RenderedPage
+import at.phactum.vortex.phase.consolidator.TreeBuilder
 import at.phactum.vortex.phase.exception.BuilderException
 import at.phactum.vortex.phase.model.Block
 import at.phactum.vortex.phase.model.Metadata
@@ -27,13 +28,15 @@ class Pipeline(val renderer: Renderer, val treeBuilder: TreeBuilder) {
         val startTime = System.currentTimeMillis()
         log.info("Building project ${root.path}")
 
-        // Render all pages
+        // Parse, Process, and Render All Pages
         root.walkTopDown().forEach { file ->
             if (file.isDirectory)
                 return@forEach
 
-            val relativeFile = file.relativeTo(root)
-            val relativePath = relativeFile.path
+            if (file.extension != PHASE_EXTENSION)
+                return@forEach
+
+            val relativePath = file.relativeTo(root).path
 
             log.info("Compiling $relativePath")
             val parsedPage = Parser(file.readText(), file).parse()
@@ -51,7 +54,7 @@ class Pipeline(val renderer: Renderer, val treeBuilder: TreeBuilder) {
         }
 
         log.info("Building output tree")
-        treeBuilder.buildOutputTree(renderedPages, outputDirectory)
+        treeBuilder.buildOutputTreeWithAttachments(renderedPages, outputDirectory, true)
         val endTime = System.currentTimeMillis()
         log.info("Done in ${endTime - startTime}ms")
     }

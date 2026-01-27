@@ -9,8 +9,10 @@ open class StyleSheet
 data class InlineStyleSheet(val style: String) : StyleSheet()
 data class LinkedStyleSheet(val path: String) : StyleSheet()
 
-class HTMLRenderer(
+class HtmlRenderer(
     val stylesheet: StyleSheet,
+
+    val topLevelWrapperClass: String = "wrapper",
 
     val titleBlockWrapperClass: String = "title-block",
     val titleWrapperClass: String = "title-wrapper",
@@ -32,7 +34,7 @@ class HTMLRenderer(
 
     override fun preamble(metadata: Metadata): String {
         val style = if (stylesheet is LinkedStyleSheet)
-            "<link rel=\"stylesheet\" href=\"styles.css\">"
+            "<link rel=\"stylesheet\" href=\"${stylesheet.path}\">"
         else if (stylesheet is InlineStyleSheet)
             "<style>\n${stylesheet.style}\n</style>"
         else
@@ -41,14 +43,17 @@ class HTMLRenderer(
         return """
             <html>
                 <head>
+                    <title>${metadata.title}</title>
                     $style
                 </head>
                 <body>
+                    <div class="$topLevelWrapperClass">
         """
     }
 
     override fun postamble(metadata: Metadata): String {
         return """
+                    </div>
                 </body>
             </html>
         """

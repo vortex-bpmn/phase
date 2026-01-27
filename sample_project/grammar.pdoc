@@ -7,6 +7,7 @@
 @section Test
     Hello, World!
     What are we doing here?
+    Szeban is very long
 @end
 
 @table
@@ -21,5 +22,9 @@
     @row
         @icol LMAO
         @icol What the fuck
+    @end
+    @row
+        @icol Fasola
+        @icol Szeeee
     @end
 @end
