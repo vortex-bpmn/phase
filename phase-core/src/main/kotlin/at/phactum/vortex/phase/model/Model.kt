@@ -10,7 +10,7 @@ data class Page(val file: File, val metadata: Metadata, val root: Block)
 
 data class Block(val body: List<Element>) : Element()
 
-data class Section(val title: String, val body: Block) : Element()
+data class Section(val title: String, val number: Int, val body: Block) : Element()
 
 data class Text(val text: String) : Element()
 

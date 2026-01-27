@@ -1,11 +1,12 @@
 package at.phactum.vortex.phase
 
 import at.phactum.vortex.phase.consolidator.TreeAttachment
-import at.phactum.vortex.phase.consolidator.impl.HtmlConsolidator
+import at.phactum.vortex.phase.consolidator.impl.HtmlTreeBuilder
 import at.phactum.vortex.phase.exception.PhaseException
 import at.phactum.vortex.phase.pipeline.Pipeline
 import at.phactum.vortex.phase.renderer.impl.HtmlRenderer
 import at.phactum.vortex.phase.renderer.impl.LinkedStyleSheet
+import at.phactum.vortex.phase.renderer.impl.Script
 import org.slf4j.LoggerFactory
 import java.io.File
 
@@ -16,7 +17,7 @@ fun main() {
             HtmlRenderer(
                 LinkedStyleSheet("style.css")
             ),
-            HtmlConsolidator().apply {
+            HtmlTreeBuilder().apply {
                 attach(
                     TreeAttachment.ResourceAttachment(
                         "style.css",

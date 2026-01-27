@@ -5,14 +5,13 @@ import at.phactum.vortex.phase.RenderedPage
 import java.io.File
 import java.util.UUID
 
-open class HtmlConsolidator : TreeBuilder() {
+open class HtmlTreeBuilder : TreeBuilder() {
     override fun buildOutputTree(
         pages: List<RenderedPage>,
         outputDirectory: File
     ) {
-        pages.forEach { page ->
-            val id = UUID.randomUUID().toString() + ".html"
-            File(outputDirectory, id).writeText(page.output)
+        pages.forEachIndexed { index, page ->
+            File(outputDirectory, "page_$index.html").writeText(page.output)
         }
     }
 }

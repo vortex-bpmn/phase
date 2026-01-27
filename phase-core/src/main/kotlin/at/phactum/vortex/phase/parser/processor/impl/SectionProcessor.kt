@@ -8,9 +8,12 @@ import at.phactum.vortex.phase.parser.processor.AstProcessor
 import at.phactum.vortex.phase.parser.processor.Processor
 
 class SectionProcessor(processor: Processor) : AstProcessor(processor) {
+
+    private var sectionNumber = 1;
+
     override fun process(node: DirectiveNode): Element {
         val title = node.value
         val body = processor.process(node.body)
-        return Section(title, Block(body))
+        return Section(title, sectionNumber++, Block(body))
     }
 }

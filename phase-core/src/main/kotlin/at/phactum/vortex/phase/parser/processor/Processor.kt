@@ -96,7 +96,7 @@ class Processor {
             return Block(
                 process(
                     directive.body
-                        .filter { it is DirectiveNode && it.type != DirectiveType.META }
+                        .filter { !(it is DirectiveNode && it.type == DirectiveType.META) }
                 )
             )
         }

@@ -1,30 +1,40 @@
 @meta
-    @title Hello, World!
-    @author Piotr K. Wyrwas
-    @version Hello!
+    @title Lorem Ipsum Dolor Sit Amet
+    @author Phactum Softwareentwicklung GmbH
+    @version 1.0
 @end
 
-@section Test
-    Hello, World!
-    What are we doing here?
-    Szeban is very long
-@end
+Hello, World!
 
 @table
     @row
-        @icol Test
-        @icol Another One
+        @icol Column 1
+        @icol Column 2
+        @icol Column 3
+        @icol Column 4
     @end
     @row
-        @icol Test
-        @icol Another One
+        @icol Lorem
+        @icol Ipsum
+        @icol Dolor
+        @icol Sit
     @end
     @row
-        @icol LMAO
-        @icol What the fuck
+        @icol Amet
+        @icol Lorem
+        @icol Ipsum
+        @icol Dolor
     @end
     @row
-        @icol Fasola
-        @icol Szeeee
+        @icol Sit
+        @icol Amet
+        @icol Lorem
+        @icol Ipsum
+    @end
+    @row
+        @icol Dolor
+        @icol Sit
+        @icol Amet
+        @icol Lorem
     @end
 @end

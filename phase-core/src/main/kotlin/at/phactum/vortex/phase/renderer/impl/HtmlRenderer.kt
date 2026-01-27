@@ -9,8 +9,13 @@ open class StyleSheet
 data class InlineStyleSheet(val style: String) : StyleSheet()
 data class LinkedStyleSheet(val path: String) : StyleSheet()
 
+data class Script(val path: String, val defer: Boolean = true)
+
 class HtmlRenderer(
     val stylesheet: StyleSheet,
+    val scripts: MutableList<Script> = mutableListOf(),
+
+    val lang: String = "en",
 
     val topLevelWrapperClass: String = "wrapper",
 
@@ -19,9 +24,15 @@ class HtmlRenderer(
     val titleTextClass: String = "title",
     val authorWrapperClass: String = "author-wrapper",
     val authorTextClass: String = "author",
+    val versionWrapperClass: String = "version-wrapper",
+    val versionTextClass: String = "version",
 
     val sectionWrapperClass: String = "section-wrapper",
-    val sectionTitleClass: String = "section-title",
+    val sectionHeaderClass: String = "section-header",
+    val sectionNumberWrapperClass: String = "section-number-wrapper",
+    val sectionNumberTextClass: String = "section-number-text",
+    val sectionTitleWrapperClass: String = "section-title-wrapper",
+    val sectionTitleTextClass: String = "section-title",
     val sectionBodyClass: String = "section-body",
 
     val textClass: String = "text",
@@ -41,10 +52,13 @@ class HtmlRenderer(
             throw RendererException("Unknown style sheet: ${stylesheet.javaClass.simpleName}")
 
         return """
-            <html>
+            <html lang="$lang">
                 <head>
                     <title>${metadata.title}</title>
                     $style
+                    ${
+            scripts.map { "<script src=\"${it.path}\"${if (it.defer) " defer" else ""}></script>" }.joinToString("\n")
+        }
                 </head>
                 <body>
                     <div class="$topLevelWrapperClass">
@@ -68,6 +82,9 @@ class HtmlRenderer(
                 <div class="$authorWrapperClass">
                     <span class="$authorTextClass">${metadata.author}</span>
                 </div>
+                <div class="$versionWrapperClass">
+                    <span class="$versionTextClass">${metadata.version}</span>
+                </div>
             </div>
         """.trimIndent()
     }
@@ -75,8 +92,13 @@ class HtmlRenderer(
     override fun renderSection(metadata: Metadata, section: Section): String {
         return """
             <div class="$sectionWrapperClass">
-                <div class="$sectionTitleClass">
-                   ${section.title}
+                <div class="$sectionHeaderClass">
+                    <div class="$sectionNumberWrapperClass">
+                        <span class="$sectionNumberTextClass">${section.number}</span>
+                    </div>
+                    <div class="$sectionTitleWrapperClass">
+                        <span class="$sectionTitleTextClass">${section.title}</span>
+                    </div>
                 </div>
                 <div class="$sectionBodyClass">
                    ${render(metadata, section.body)}
