@@ -1,0 +1,25 @@
+@meta
+    @title Hello, World!
+    @author Piotr K. Wyrwas
+    @version Hello!
+@end
+
+@section Test
+    Hello, World!
+    What are we doing here?
+@end
+
+@table
+    @row
+        @icol Test
+        @icol Another One
+    @end
+    @row
+        @icol Test
+        @icol Another One
+    @end
+    @row
+        @icol LMAO
+        @icol What the fuck
+    @end
+@end

@@ -1,0 +1,11 @@
+<configuration>
+    <appender name="C" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%highlight([%level]) %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="C"/>
+    </root>
+</configuration>
