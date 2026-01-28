@@ -1,6 +1,4 @@
-# Phactum&reg; Phase
-
-Phactum Documentation System
+![](repo/phase_logo_full.png "Phase Logo")
 
 ### Usage
 
