@@ -3,3 +3,4 @@ plugins {
 }
 rootProject.name = "phase"
 include("phase-core")
+include("phase-html")

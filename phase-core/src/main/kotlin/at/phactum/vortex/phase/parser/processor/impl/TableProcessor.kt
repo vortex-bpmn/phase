@@ -15,7 +15,7 @@ class TableProcessor(processor: Processor) : AstProcessor(processor) {
             if (n !is DirectiveNode)
                 throw ProcessorException("${n.javaClass.simpleName} is not allowed directly in a table")
 
-            if (n.type != DirectiveType.ROW)
+            if (n.type != DirectiveType.TABLE_ROW)
                 throw ProcessorException("${n.type} is not allowed directly in a table. Expected zero or more @row")
 
             rows.add(n)
@@ -38,13 +38,13 @@ class TableProcessor(processor: Processor) : AstProcessor(processor) {
                         Position(col.line, col.column)
                     )
 
-                if (col.type != DirectiveType.COL && col.type != DirectiveType.ICOL)
+                if (col.type != DirectiveType.TABLE_COLUMN && col.type != DirectiveType.TABLE_INLINE_COLUMN)
                     throw ProcessorException(
                         "${col.type} is not allowed directly in a row. Expected zero or more @col or @icol",
                         Position(col.line, col.column)
                     )
 
-                val columnBody = if (col.type == DirectiveType.COL)
+                val columnBody = if (col.type == DirectiveType.TABLE_COLUMN)
                     processor.process(col.body)
                 else
                     listOf(Text(col.value))

@@ -3,26 +3,46 @@ package at.phactum.vortex.phase.parser
 import at.phactum.vortex.phase.exception.SyntaxException
 import java.io.File
 
-enum class DirectiveType(val isCompound: Boolean, val hasValue: Boolean) {
-    BLOCK(true, false),
-    END(false, false),
 
-    META(true, false),
-    TITLE(false, true),
-    AUTHOR(false, true),
-    VERSION(false, true),
+enum class DirectiveType(
+    val identifier: String,
+    val isCompound: Boolean,
+    val hasValue: Boolean,
+    val availableIn: ParsingContextType? = ParsingContextType.PAGE_FILE
+) {
+    BLOCK("block", true, false),
+    END("end", false, false),
 
-    SECTION(true, true),
+    META("meta", true, false),
+    TITLE("title", false, true),
+    AUTHOR("author", false, true),
+    VERSION("version", false, true),
 
-    TABLE(true, false),
-    ROW(true, false),
-    COL(true, false),
-    ICOL(false, true);
+    SECTION("section", true, true),
+
+    TABLE("table", true, false),
+    TABLE_ROW("row", true, false),
+    TABLE_COLUMN("col", true, false),
+    TABLE_INLINE_COLUMN("icol", false, true),
+
+    PROJECT_NAME("project", false, true, ParsingContextType.PROJECT_FILE);
+
 
     companion object {
-        fun parse(s: String, file: File, lineNumber: Int, columnNumber: Int): DirectiveType {
-            return entries.find { d -> d.name.equals(s, ignoreCase = true) }
-                ?: throw SyntaxException("Unknown directive \"$s\"", file, lineNumber, columnNumber)
+        fun parse(
+            s: String,
+            contextType: ParsingContextType,
+            file: File,
+            lineNumber: Int,
+            columnNumber: Int
+        ): DirectiveType {
+            return entries.find { d -> d.identifier == s && d.availableIn == contextType }
+                ?: throw SyntaxException(
+                    "Unknown directive \"$s\" in a ${contextType.displayName}",
+                    file,
+                    lineNumber,
+                    columnNumber
+                )
         }
     }
 }

@@ -4,9 +4,21 @@ import java.io.File
 
 sealed class Element
 
-data class Metadata(val title: String, val author: String, val version: String)
+data class Project(val pages: List<RenderedPage>, val settings: ProjectSettings)
+
+data class RenderedPage(
+    val page: Page,
+    val output: String,
+    val metadata: Metadata,
+    val projectRoot: File,
+    val pageFile: File
+)
 
 data class Page(val file: File, val metadata: Metadata, val root: Block)
+
+data class ProjectSettings(val name: String)
+
+data class Metadata(val title: String, val author: String, val version: String)
 
 data class Block(val body: List<Element>) : Element()
 

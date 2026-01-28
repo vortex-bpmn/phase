@@ -3,9 +3,15 @@ package at.phactum.vortex.phase.parser
 import at.phactum.vortex.phase.Constants.LINE_SEPARATOR
 import at.phactum.vortex.phase.exception.SyntaxException
 import java.io.File
+import java.nio.charset.StandardCharsets
 import java.util.*
 
-class Parser(source: String, val file: File) {
+enum class ParsingContextType(val displayName: String) {
+    PAGE_FILE("page file"),
+    PROJECT_FILE("project file"),
+}
+
+class Parser(source: String, val file: File, val contextType: ParsingContextType) {
     private var lines: Iterator<String> = source.split(LINE_SEPARATOR).iterator()
     private var currentLine: String = ""
     private var position: Int = 0
@@ -24,7 +30,29 @@ class Parser(source: String, val file: File) {
     private val columnNumber: Int
         get() = position + 1
 
-    fun parse(): ParsedPage {
+    companion object {
+        fun parsePage(file: File): ParseResult.ParsedPage {
+            val parser = Parser(
+                file.readText(StandardCharsets.UTF_8),
+                file,
+                ParsingContextType.PAGE_FILE
+            )
+            val result = parser.parse()
+            return result as ParseResult.ParsedPage
+        }
+
+        fun parseProjectSettings(file: File): ParseResult.ParsedProjectSettings {
+            val parser = Parser(
+                file.readText(StandardCharsets.UTF_8),
+                file,
+                ParsingContextType.PROJECT_FILE
+            )
+            val result = parser.parse()
+            return result as ParseResult.ParsedProjectSettings
+        }
+    }
+
+    fun parse(): ParseResult {
         metadataBlock = null
 
         while (lines.hasNext()) {
@@ -45,14 +73,22 @@ class Parser(source: String, val file: File) {
                 columnNumber
             )
 
-        if (metadataBlock == null)
+        if (metadataBlock == null && contextType == ParsingContextType.PAGE_FILE) {
             throw SyntaxException("Page must have a metadata block", file, lineNumber, columnNumber)
+        }
 
-        return ParsedPage(
-            file,
-            metadataBlock!!,
-            scopes.first()
-        )
+        return when (contextType) {
+            ParsingContextType.PAGE_FILE -> ParseResult.ParsedPage(
+                file,
+                metadataBlock!!,
+                scopes.first()
+            )
+
+            ParsingContextType.PROJECT_FILE -> ParseResult.ParsedProjectSettings(
+                file,
+                scopes.first()
+            )
+        }
     }
 
     private fun isInBounds() = position < currentLine.length
@@ -74,7 +110,7 @@ class Parser(source: String, val file: File) {
 
     private fun tokenizeIdentifier(): String {
         val identifier = StringBuilder()
-        while (isInBounds() && currentChar?.isLetter() ?: false || currentChar == '_') {
+        while (isInBounds() && currentChar?.isLetter() ?: false || currentChar == '_' || currentChar == '-') {
             identifier.append(currentChar)
             consume()
         }
@@ -96,6 +132,11 @@ class Parser(source: String, val file: File) {
             return
         }
 
+        // Comment
+        if (c == '#') {
+            return
+        }
+
         val node = TextNode(lineNumber, position, line.substring(position))
 
         // Add the text node to the body of the current scope
@@ -105,7 +146,7 @@ class Parser(source: String, val file: File) {
     private fun parseDirective(line: String) {
         val identifierColumn = columnNumber
         val identifier = tokenizeIdentifier()
-        val directiveType = DirectiveType.parse(identifier, file, lineNumber, identifierColumn)
+        val directiveType = DirectiveType.parse(identifier, contextType, file, lineNumber, identifierColumn)
 
         if (directiveType == DirectiveType.END) {
             if (scopes.size <= 1)

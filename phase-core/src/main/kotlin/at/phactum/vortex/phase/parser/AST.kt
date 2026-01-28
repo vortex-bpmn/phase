@@ -2,11 +2,18 @@ package at.phactum.vortex.phase.parser
 
 import java.io.File
 
-data class ParsedPage(
-    val file: File,
-    val metadataBlock: DirectiveNode,
-    val rootBlock: Node
-)
+sealed class ParseResult {
+    data class ParsedPage(
+        val file: File,
+        val metadataBlock: DirectiveNode,
+        val rootBlock: Node
+    ) : ParseResult()
+
+    data class ParsedProjectSettings(
+        val file: File,
+        val rootBlock: Node
+    ) : ParseResult()
+}
 
 open class Node(open val line: Int, open val column: Int)
 

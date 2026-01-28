@@ -23,7 +23,7 @@ class Processor {
         return nodes.map { process(it) }
     }
 
-    fun process(page: ParsedPage): Page {
+    fun process(page: ParseResult.ParsedPage): Page {
         val rootBlock = process(page.rootBlock)
         if (rootBlock !is Block)
             throw ProcessorException("Page is expected to contain a top-level block. This should not happen")
@@ -36,53 +36,68 @@ class Processor {
     }
 
     private fun processMetadata(metadataDirective: DirectiveNode): Metadata {
-        val fields = mutableMapOf<DirectiveType, String>()
-
-        for (field in metadataDirective.body) {
-            if (field !is DirectiveNode)
-                throw ProcessorException(
-                    "Unexpected ${field.javaClass.simpleName} in metadata block",
-                    Position(field.line, field.column)
-                )
-
-            if (!arrayOf(DirectiveType.TITLE, DirectiveType.AUTHOR, DirectiveType.VERSION).contains(field.type))
-                throw ProcessorException(
-                    "Unexpected directive ${field.type} in metadata block",
-                    Position(field.line, field.column)
-                )
-
-            if (fields.put(field.type, field.value) != null)
-                throw ProcessorException(
-                    "Duplicate field ${field.type} in metadata block",
-                    Position(field.line, field.column)
-                )
-        }
-
-        val presentFields = fields.keys
-
-        if (!presentFields.contains(DirectiveType.TITLE))
-            throw ProcessorException(
-                "Title is required in metadata block",
-                Position(metadataDirective.line, metadataDirective.column)
+        val schema = processSchema(
+            metadataDirective,
+            listOf(
+                DirectiveType.TITLE,
+                DirectiveType.AUTHOR,
+                DirectiveType.VERSION
             )
-
-        if (!presentFields.contains(DirectiveType.AUTHOR))
-            throw ProcessorException(
-                "Author is required in metadata block",
-                Position(metadataDirective.line, metadataDirective.column)
-            )
-
-        if (!presentFields.contains(DirectiveType.VERSION))
-            throw ProcessorException(
-                "Version is required in metadata block",
-                Position(metadataDirective.line, metadataDirective.column)
-            )
+        )
 
         return Metadata(
-            fields[DirectiveType.TITLE]!!,
-            fields[DirectiveType.AUTHOR]!!,
-            fields[DirectiveType.VERSION]!!
+            schema[DirectiveType.TITLE]!!,
+            schema[DirectiveType.AUTHOR]!!,
+            schema[DirectiveType.VERSION]!!
         )
+    }
+
+    fun processProjectSettings(rootBlock: DirectiveNode): ProjectSettings {
+        val schema = processSchema(
+            rootBlock,
+            listOf(
+                DirectiveType.PROJECT_NAME
+            )
+        )
+
+        return ProjectSettings(schema[DirectiveType.PROJECT_NAME]!!)
+    }
+
+    fun processSchema(block: DirectiveNode, expectedFields: List<DirectiveType>): Map<DirectiveType, String> {
+        val fields = mutableMapOf<DirectiveType, String>()
+
+        block.body.forEach { field ->
+            if (field !is DirectiveNode)
+                throw ProcessorException(
+                    "Unexpected ${field.javaClass.simpleName} in schema",
+                    Position(field.line, field.column)
+                )
+
+            if (!expectedFields.contains(field.type)) {
+                throw ProcessorException(
+                    "Unexpected directive ${field.type} in schema",
+                    Position(field.line, field.column)
+                )
+            }
+
+            if (fields.put(field.type, field.value) != null) {
+                throw ProcessorException(
+                    "Duplicate field ${field.type} in schema",
+                    Position(field.line, field.column)
+                )
+            }
+        }
+
+        if (fields.size != expectedFields.size) {
+            throw ProcessorException(
+                "Schema does not contain the required fields (${
+                    expectedFields.map { it.identifier }.joinToString(", ")
+                })",
+                Position(block.line, block.column)
+            )
+        }
+
+        return fields
     }
 
     fun process(node: Node): Element {

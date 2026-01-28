@@ -1,7 +1,7 @@
 export const pages = [ {
-  "title" : "Welcome!",
+  "title" : "Architecture",
   "path" : "page_0.html"
 }, {
-  "title" : "Architecture",
+  "title" : "Welcome!",
   "path" : "page_1.html"
 } ];
