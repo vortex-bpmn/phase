@@ -9,10 +9,10 @@ open class StyleSheet
 data class InlineStyleSheet(val style: String) : StyleSheet()
 data class LinkedStyleSheet(val path: String) : StyleSheet()
 
-data class Script(val path: String, val defer: Boolean = true)
+data class Script(val path: String, val module: Boolean = false, val defer: Boolean = true)
 
 class HtmlRenderer(
-    val stylesheet: StyleSheet,
+    val stylesheet: StyleSheet? = null,
     val scripts: MutableList<Script> = mutableListOf(),
 
     val lang: String = "en",
@@ -44,7 +44,9 @@ class HtmlRenderer(
 ) : Renderer() {
 
     override fun preamble(metadata: Metadata): String {
-        val style = if (stylesheet is LinkedStyleSheet)
+        val style = if (stylesheet == null)
+            "<!-- No Stylesheet -->"
+        else if (stylesheet is LinkedStyleSheet)
             "<link rel=\"stylesheet\" href=\"${stylesheet.path}\">"
         else if (stylesheet is InlineStyleSheet)
             "<style>\n${stylesheet.style}\n</style>"
@@ -57,7 +59,8 @@ class HtmlRenderer(
                     <title>${metadata.title}</title>
                     $style
                     ${
-            scripts.map { "<script src=\"${it.path}\"${if (it.defer) " defer" else ""}></script>" }.joinToString("\n")
+            scripts.map { "<script${if (it.module) " type=\"module\"" else ""} src=\"${it.path}\"${if (it.defer) " defer" else ""}></script>" }
+                .joinToString("\n")
         }
                 </head>
                 <body>

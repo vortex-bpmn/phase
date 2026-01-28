@@ -46,11 +46,15 @@ abstract class TreeBuilder(val attachments: MutableList<TreeAttachment> = mutabl
 
     fun buildAttachments(outputDirectory: File) {
         attachments.forEach { attachment ->
-            log.info("+ Creating Attachment: ${attachment.path}")
-            val attachmentFile = File(outputDirectory, attachment.path)
-            attachmentFile.parentFile?.mkdirs()
-            attachmentFile.writeBytes(attachment.bytes())
+            createAttachment(outputDirectory, attachment)
         }
+    }
+
+    fun createAttachment(outputDirectory: File, attachment: TreeAttachment) {
+        log.info("Creating Attachment: ${attachment.path}")
+        val attachmentFile = File(outputDirectory, attachment.path)
+        attachmentFile.parentFile?.mkdirs()
+        attachmentFile.writeBytes(attachment.bytes())
     }
 
     abstract fun buildOutputTree(pages: List<RenderedPage>, outputDirectory: File)
