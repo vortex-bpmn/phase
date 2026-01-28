@@ -1,1 +1,6 @@
 @project Phactum Vortex
+
+@attachment
+    @source README.md
+    @destination README.md
+@end

@@ -1,10 +1,12 @@
 package at.phactum.vortex.phase.pipeline
 
+import at.phactum.vortex.phase.exception.PipelineException
 import at.phactum.vortex.phase.model.*
 import at.phactum.vortex.phase.parser.DirectiveNode
 import at.phactum.vortex.phase.parser.Parser
 import at.phactum.vortex.phase.parser.processor.Processor
 import at.phactum.vortex.phase.renderer.Renderer
+import at.phactum.vortex.phase.treebuilder.TreeAttachment
 import at.phactum.vortex.phase.treebuilder.TreeBuilder
 import org.slf4j.LoggerFactory
 import java.io.File
@@ -20,6 +22,26 @@ open class Pipeline(val renderer: Renderer, val treeBuilder: TreeBuilder) {
 
         val parsedSettings = Parser.parseProjectSettings(structure.settingsFile)
         val settings = processor.processProjectSettings(parsedSettings.rootBlock as DirectiveNode)
+
+        settings.attachments.forEach {
+            val sourceFile = File(root, it.source)
+
+            if (!sourceFile.exists()) {
+                throw PipelineException("Custom attachment file does not exist: ${it.source}")
+            }
+
+            if (sourceFile.isDirectory) {
+                throw PipelineException("Custom attachment file is a directory: ${it.source}")
+            }
+
+            treeBuilder.attach(TreeAttachment.FileAttachment(
+                it.destination,
+                File(root, it.source),
+                true
+            ))
+
+            log.info("Registering custom attachment: ${it.source} -> ${it.destination}")
+        }
 
         log.info("Building project \"${settings.name}\" at ${root.path}")
 

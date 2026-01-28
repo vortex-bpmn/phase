@@ -16,7 +16,9 @@ data class RenderedPage(
 
 data class Page(val file: File, val metadata: Metadata, val root: Block)
 
-data class ProjectSettings(val name: String)
+data class ProjectSettings(val name: String, val attachments: List<Attachment>)
+
+data class Attachment(val source: String, val destination: String)
 
 data class Metadata(val title: String, val author: String, val version: String)
 

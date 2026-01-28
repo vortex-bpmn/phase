@@ -11,7 +11,7 @@ enum class DirectiveType(
     val availableIn: ParsingContextType? = ParsingContextType.PAGE_FILE
 ) {
     BLOCK("block", true, false),
-    END("end", false, false),
+    END("end", false, false, null),
 
     META("meta", true, false),
     TITLE("title", false, true),
@@ -25,8 +25,10 @@ enum class DirectiveType(
     TABLE_COLUMN("col", true, false),
     TABLE_INLINE_COLUMN("icol", false, true),
 
-    PROJECT_NAME("project", false, true, ParsingContextType.PROJECT_FILE);
-
+    PROJECT_NAME("project", false, true, ParsingContextType.PROJECT_FILE),
+    ATTACHMENT("attachment", true, false, ParsingContextType.PROJECT_FILE),
+    ATTACHMENT_SOURCE("source", false, true, ParsingContextType.PROJECT_FILE),
+    ATTACHMENT_DESTINATION("destination", false, true, ParsingContextType.PROJECT_FILE);
 
     companion object {
         fun parse(
@@ -36,7 +38,7 @@ enum class DirectiveType(
             lineNumber: Int,
             columnNumber: Int
         ): DirectiveType {
-            return entries.find { d -> d.identifier == s && d.availableIn == contextType }
+            return entries.find { d -> d.identifier == s && (d.availableIn == null || d.availableIn == contextType) }
                 ?: throw SyntaxException(
                     "Unknown directive \"$s\" in a ${contextType.displayName}",
                     file,

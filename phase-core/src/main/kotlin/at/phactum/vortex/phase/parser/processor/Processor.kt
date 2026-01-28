@@ -53,14 +53,60 @@ class Processor {
     }
 
     fun processProjectSettings(rootBlock: DirectiveNode): ProjectSettings {
-        val schema = processSchema(
-            rootBlock,
-            listOf(
-                DirectiveType.PROJECT_NAME
-            )
-        )
 
-        return ProjectSettings(schema[DirectiveType.PROJECT_NAME]!!)
+        val attachments = mutableListOf<Attachment>()
+        var projectName: String? = null
+
+        rootBlock.body.forEach { field ->
+            if (field !is DirectiveNode) {
+                throw ProcessorException(
+                    "Unexpected ${field.javaClass.simpleName} in schema",
+                    Position(field.line, field.column)
+                )
+            }
+
+            if (field.type == DirectiveType.PROJECT_NAME) {
+                if (projectName != null) {
+                    throw ProcessorException(
+                        "Duplicate field ${field.type} in schema",
+                        Position(field.line, field.column)
+                    )
+                }
+                projectName = field.value
+                return@forEach
+            }
+
+            if (field.type == DirectiveType.ATTACHMENT) {
+                val attachmentModel = processSchema(
+                    field,
+                    listOf(
+                        DirectiveType.ATTACHMENT_SOURCE,
+                        DirectiveType.ATTACHMENT_DESTINATION
+                    )
+                )
+
+                attachments.add(
+                    Attachment(
+                        attachmentModel[DirectiveType.ATTACHMENT_SOURCE]!!,
+                        attachmentModel[DirectiveType.ATTACHMENT_DESTINATION]!!
+                    )
+                )
+
+                return@forEach
+            }
+
+            throw ProcessorException(
+                "Unexpected directive ${field.type} in schema",
+                Position(field.line, field.column)
+            )
+        }
+
+        return ProjectSettings(
+            projectName ?: throw ProcessorException(
+                "Project name not set in the project settings",
+            ),
+            attachments
+        )
     }
 
     fun processSchema(block: DirectiveNode, expectedFields: List<DirectiveType>): Map<DirectiveType, String> {
@@ -90,7 +136,7 @@ class Processor {
 
         if (fields.size != expectedFields.size) {
             throw ProcessorException(
-                "Schema does not contain the required fields (${
+                "Schema does not contain all required fields (${
                     expectedFields.map { it.identifier }.joinToString(", ")
                 })",
                 Position(block.line, block.column)

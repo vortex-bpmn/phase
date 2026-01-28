@@ -9,10 +9,20 @@ page. The exact directory structure does not matter.
 
 #### Project Settings
 
-The settings file should contain the following schema
+The settings file should at least contain the project name
 
 ```css
 @project Phactum Vortex
+```
+
+You can also attach custom files that will be written into the output directory,
+where `@source` and `@destination` are paths relative to the project directory
+and the output directory respectively.
+```css
+@attachment
+    @source README.md
+    @destination README.md
+@end
 ```
 
 #### Documentation Pages
