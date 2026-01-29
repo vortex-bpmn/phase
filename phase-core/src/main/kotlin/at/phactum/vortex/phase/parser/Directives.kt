@@ -29,22 +29,4 @@ enum class DirectiveType(
     ATTACHMENT("attachment", true, false, ParsingContextType.PROJECT_FILE),
     ATTACHMENT_SOURCE("source", false, true, ParsingContextType.PROJECT_FILE),
     ATTACHMENT_DESTINATION("destination", false, true, ParsingContextType.PROJECT_FILE);
-
-    companion object {
-        fun parse(
-            s: String,
-            contextType: ParsingContextType,
-            file: File,
-            lineNumber: Int,
-            columnNumber: Int
-        ): DirectiveType {
-            return entries.find { d -> d.identifier == s && (d.availableIn == null || d.availableIn == contextType) }
-                ?: throw SyntaxException(
-                    "Unknown directive \"$s\" in a ${contextType.displayName}",
-                    file,
-                    lineNumber,
-                    columnNumber
-                )
-        }
-    }
 }

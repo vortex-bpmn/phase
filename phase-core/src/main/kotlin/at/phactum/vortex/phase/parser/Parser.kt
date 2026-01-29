@@ -2,6 +2,7 @@ package at.phactum.vortex.phase.parser
 
 import at.phactum.vortex.phase.Constants.LINE_SEPARATOR
 import at.phactum.vortex.phase.exception.SyntaxException
+import at.phactum.vortex.phase.parser.DirectiveType.entries
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.util.*
@@ -143,10 +144,20 @@ class Parser(source: String, val file: File, val contextType: ParsingContextType
         scopes.peek().body.add(node)
     }
 
+    private fun parseDirectiveType(s: String): DirectiveType {
+        return entries.find { d -> d.identifier == s && (d.availableIn == null || d.availableIn == contextType) }
+            ?: throw SyntaxException(
+                "Unknown directive \"$s\" in a ${contextType.displayName}",
+                file,
+                lineNumber,
+                columnNumber
+            )
+    }
+
     private fun parseDirective(line: String) {
-        val identifierColumn = columnNumber
+        val directiveColumn = columnNumber - 1
         val identifier = tokenizeIdentifier()
-        val directiveType = DirectiveType.parse(identifier, contextType, file, lineNumber, identifierColumn)
+        val directiveType = parseDirectiveType(identifier)
 
         if (directiveType == DirectiveType.END) {
             if (scopes.size <= 1)
@@ -154,7 +165,7 @@ class Parser(source: String, val file: File, val contextType: ParsingContextType
                     "No block to end here. Too many @end directives",
                     file,
                     lineNumber,
-                    identifierColumn - 1
+                    directiveColumn
                 )
 
             // Register the metadata block for this page
@@ -165,7 +176,7 @@ class Parser(source: String, val file: File, val contextType: ParsingContextType
                         "Page can only have a single metadata block",
                         file,
                         lineNumber,
-                        identifierColumn - 1
+                        directiveColumn
                     )
 
                 metadataBlock = lastBlock
@@ -195,7 +206,7 @@ class Parser(source: String, val file: File, val contextType: ParsingContextType
                 columnNumber
             )
 
-        val node = DirectiveNode(lineNumber, identifierColumn - 1, directiveType, value, mutableListOf())
+        val node = DirectiveNode(lineNumber, directiveColumn, directiveType, value, mutableListOf())
         scopes.peek().body.add(node)
 
         if (directiveType.isCompound)
