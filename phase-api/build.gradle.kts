@@ -10,10 +10,6 @@ repositories {
 }
 
 dependencies {
-    api(project(":phase-api"))
-    implementation("org.reflections:reflections:0.10.2")
-    implementation("com.fasterxml.jackson.core:jackson-databind:latest.release")
-    implementation("org.jsoup:jsoup:1.16.2")
     testImplementation(kotlin("test"))
 }
 

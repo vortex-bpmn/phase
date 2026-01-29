@@ -1,0 +1,65 @@
+package at.phactum.vortex.phase.processor
+
+import at.phactum.vortex.phase.api.DirectiveType
+import at.phactum.vortex.phase.api.base.DirectiveProcessor
+import at.phactum.vortex.phase.api.exception.Position
+import at.phactum.vortex.phase.api.exception.ProcessorException
+import at.phactum.vortex.phase.api.model.Block
+import at.phactum.vortex.phase.api.model.Column
+import at.phactum.vortex.phase.api.model.DirectiveNode
+import at.phactum.vortex.phase.api.model.Element
+import at.phactum.vortex.phase.api.model.Row
+import at.phactum.vortex.phase.api.model.Table
+import at.phactum.vortex.phase.api.model.Text
+
+class TableProcessor(processor: Processor) : DirectiveProcessor(processor) {
+    override fun process(node: DirectiveNode): Element {
+        val rows = mutableListOf<DirectiveNode>()
+        for (n in node.body) {
+            if (n !is DirectiveNode)
+                throw ProcessorException("${n.javaClass.simpleName} is not allowed directly in a table")
+
+            if (n.type != DirectiveType.TABLE_ROW)
+                throw ProcessorException("${n.type} is not allowed directly in a table. Expected zero or more @row")
+
+            rows.add(n)
+        }
+
+        val rowElements = processRows(rows)
+        return Table(rowElements)
+    }
+
+    private fun processRows(rows: List<DirectiveNode>): List<Row> {
+        val rowElements = mutableListOf<Row>()
+
+        for (row in rows) {
+            val rowElement = Row(mutableListOf())
+
+            for (col in row.body) {
+                if (col !is DirectiveNode)
+                    throw ProcessorException(
+                        "${col.javaClass.simpleName} is not allowed directly in a table",
+                        Position(col.line, col.column)
+                    )
+
+                if (col.type != DirectiveType.TABLE_COLUMN && col.type != DirectiveType.TABLE_INLINE_COLUMN)
+                    throw ProcessorException(
+                        "${col.type} is not allowed directly in a row. Expected zero or more @col or @icol",
+                        Position(col.line, col.column)
+                    )
+
+                val columnBody = if (col.type == DirectiveType.TABLE_COLUMN)
+                    parentProcessor.process(col.body)
+                else
+                    listOf(Text(col.value))
+
+                val column = Column(Block(columnBody))
+                rowElement.columns.add(column)
+            }
+
+            rowElements.add(rowElement)
+        }
+
+        return rowElements
+    }
+}

@@ -1,16 +1,16 @@
 package at.phactum.vortex.phase.parser
 
-import at.phactum.vortex.phase.Constants.LINE_SEPARATOR
-import at.phactum.vortex.phase.exception.SyntaxException
-import at.phactum.vortex.phase.parser.DirectiveType.entries
+import at.phactum.vortex.phase.api.Constants.LINE_SEPARATOR
+import at.phactum.vortex.phase.api.model.DirectiveNode
+import at.phactum.vortex.phase.api.DirectiveType
+import at.phactum.vortex.phase.api.model.ParseResult
+import at.phactum.vortex.phase.api.model.TextNode
+import at.phactum.vortex.phase.api.DirectiveType.entries
+import at.phactum.vortex.phase.api.ParsingContextType
+import at.phactum.vortex.phase.api.exception.SyntaxException
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.util.*
-
-enum class ParsingContextType(val displayName: String) {
-    PAGE_FILE("page file"),
-    PROJECT_FILE("project file"),
-}
 
 class Parser(source: String, val file: File, val contextType: ParsingContextType) {
     private var lines: Iterator<String> = source.split(LINE_SEPARATOR).iterator()

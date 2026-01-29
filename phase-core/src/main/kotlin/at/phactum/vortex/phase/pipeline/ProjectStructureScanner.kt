@@ -1,9 +1,8 @@
 package at.phactum.vortex.phase.pipeline
 
-import at.phactum.vortex.phase.Constants.PHASE_PAGE_EXTENSION
-import at.phactum.vortex.phase.Constants.PHASE_PROJECT_EXTENSION
-import at.phactum.vortex.phase.exception.PipelineException
-import at.phactum.vortex.phase.exception.ProjectStructureException
+import at.phactum.vortex.phase.api.Constants.PHASE_PAGE_EXTENSION
+import at.phactum.vortex.phase.api.Constants.PHASE_PROJECT_EXTENSION
+import at.phactum.vortex.phase.api.exception.ProjectStructureException
 import org.slf4j.LoggerFactory
 import java.io.File
 

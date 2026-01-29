@@ -4,3 +4,5 @@ plugins {
 rootProject.name = "phase"
 include("phase-core")
 include("phase-html")
+include("phase-api")
+include("phase-vortex")

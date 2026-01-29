@@ -1,11 +1,11 @@
 package at.phactum.vortex.phase.pipeline.preset
 
-import at.phactum.vortex.phase.pipeline.Pipeline
-import at.phactum.vortex.phase.renderer.impl.HtmlRenderer
-import at.phactum.vortex.phase.treebuilder.TreeAttachment
-import at.phactum.vortex.phase.treebuilder.impl.HtmlTreeBuilder
+import at.phactum.vortex.phase.pipeline.SimplePipeline
+import at.phactum.vortex.phase.renderer.HtmlRenderer
+import at.phactum.vortex.phase.api.base.TreeAttachment
+import at.phactum.vortex.phase.treebuilder.HtmlTreeBuilder
 
-class VortexHtmlPipeline : Pipeline(
+class VortexHtmlPipeline : SimplePipeline(
     HtmlRenderer(),
     HtmlTreeBuilder().apply {
         attach(

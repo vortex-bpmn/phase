@@ -1,5 +1,0 @@
-package at.phactum.vortex.phase.exception
-
-abstract class PhaseException(override val message: String) : RuntimeException(message) {
-    abstract fun formattedMessage(): String
-}

@@ -1,6 +1,6 @@
 package at.phactum.vortex.phase
 
-import at.phactum.vortex.phase.exception.PhaseException
+import at.phactum.vortex.phase.api.exception.PhaseException
 import at.phactum.vortex.phase.pipeline.preset.VortexHtmlPipeline
 import org.slf4j.LoggerFactory
 import java.io.File
