@@ -23,6 +23,8 @@ open class Pipeline(val renderer: Renderer, val treeBuilder: TreeBuilder) {
         val parsedSettings = Parser.parseProjectSettings(structure.settingsFile)
         val settings = processor.processProjectSettings(parsedSettings.rootBlock as DirectiveNode)
 
+        log.info("Building project \"${settings.name}\" at ${root.path}")
+
         settings.attachments.forEach {
             val sourceFile = File(root, it.source)
 
@@ -42,8 +44,6 @@ open class Pipeline(val renderer: Renderer, val treeBuilder: TreeBuilder) {
 
             log.info("Registering custom attachment: ${it.source} -> ${it.destination}")
         }
-
-        log.info("Building project \"${settings.name}\" at ${root.path}")
 
         val renderedPages = mutableListOf<RenderedPage>()
 

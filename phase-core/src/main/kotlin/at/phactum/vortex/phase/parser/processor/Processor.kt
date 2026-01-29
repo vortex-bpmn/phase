@@ -7,6 +7,25 @@ import at.phactum.vortex.phase.parser.*
 import at.phactum.vortex.phase.parser.processor.impl.SectionProcessor
 import at.phactum.vortex.phase.parser.processor.impl.TableProcessor
 
+data class Field(
+    val type: DirectiveType,
+    val node: DirectiveNode,
+    val inlineValue: String
+) {
+    companion object {
+        fun from(directive: DirectiveNode): Field = Field(
+            directive.type,
+            directive,
+            directive.value
+        )
+    }
+}
+
+data class Schema(
+    val uniqueFields: Map<DirectiveType, Field>,
+    val repeatingFields: List<Pair<DirectiveType, Field>>
+)
+
 class Processor {
     private val processors = mutableMapOf<DirectiveType, AstProcessor>()
 
@@ -45,53 +64,80 @@ class Processor {
             )
         )
 
+        val fields = schema.uniqueFields
+
         return Metadata(
-            schema[DirectiveType.TITLE]!!,
-            schema[DirectiveType.AUTHOR]!!,
-            schema[DirectiveType.VERSION]!!
+            fields[DirectiveType.TITLE]!!.inlineValue,
+            fields[DirectiveType.AUTHOR]!!.inlineValue,
+            fields[DirectiveType.VERSION]!!.inlineValue
         )
     }
 
     fun processProjectSettings(rootBlock: DirectiveNode): ProjectSettings {
-
         val attachments = mutableListOf<Attachment>()
-        var projectName: String? = null
 
-        rootBlock.body.forEach { field ->
-            if (field !is DirectiveNode) {
+        val schema = processSchema(
+            rootBlock,
+            listOf(
+                DirectiveType.PROJECT_NAME
+            ),
+            listOf(
+                DirectiveType.ATTACHMENT
+            )
+        )
+
+        schema.repeatingFields.forEach { attachmentRoot ->
+            val attachment = processSchema(
+                attachmentRoot.second.node,
+                listOf(
+                    DirectiveType.ATTACHMENT_SOURCE,
+                    DirectiveType.ATTACHMENT_DESTINATION
+                )
+            )
+
+            val fields = attachment.uniqueFields
+
+            attachments.add(
+                Attachment(
+                    fields[DirectiveType.ATTACHMENT_SOURCE]!!.inlineValue,
+                    fields[DirectiveType.ATTACHMENT_DESTINATION]!!.inlineValue
+                )
+            )
+        }
+
+        return ProjectSettings(
+            schema.uniqueFields[DirectiveType.PROJECT_NAME]!!.inlineValue,
+            attachments
+        )
+    }
+
+    fun processSchema(
+        block: DirectiveNode,
+        uniqueFields: List<DirectiveType>,
+        repeatingFields: List<DirectiveType> = listOf()
+    ): Schema {
+        val uniqueSchemaFields = mutableMapOf<DirectiveType, Field>()
+        val repeatingSchemaFields = mutableListOf<Pair<DirectiveType, Field>>()
+
+        block.body.forEach { field ->
+            if (field !is DirectiveNode)
                 throw ProcessorException(
                     "Unexpected ${field.javaClass.simpleName} in schema",
                     Position(field.line, field.column)
                 )
-            }
 
-            if (field.type == DirectiveType.PROJECT_NAME) {
-                if (projectName != null) {
+            if (uniqueFields.contains(field.type)) {
+                if (uniqueSchemaFields.put(field.type, Field.from(field)) != null) {
                     throw ProcessorException(
                         "Duplicate field ${field.type} in schema",
                         Position(field.line, field.column)
                     )
                 }
-                projectName = field.value
                 return@forEach
             }
 
-            if (field.type == DirectiveType.ATTACHMENT) {
-                val attachmentModel = processSchema(
-                    field,
-                    listOf(
-                        DirectiveType.ATTACHMENT_SOURCE,
-                        DirectiveType.ATTACHMENT_DESTINATION
-                    )
-                )
-
-                attachments.add(
-                    Attachment(
-                        attachmentModel[DirectiveType.ATTACHMENT_SOURCE]!!,
-                        attachmentModel[DirectiveType.ATTACHMENT_DESTINATION]!!
-                    )
-                )
-
+            if (repeatingFields.contains(field.type)) {
+                repeatingSchemaFields.add(Pair(field.type, Field.from(field)))
                 return@forEach
             }
 
@@ -101,49 +147,16 @@ class Processor {
             )
         }
 
-        return ProjectSettings(
-            projectName ?: throw ProcessorException(
-                "Project name not set in the project settings",
-            ),
-            attachments
-        )
-    }
-
-    fun processSchema(block: DirectiveNode, expectedFields: List<DirectiveType>): Map<DirectiveType, String> {
-        val fields = mutableMapOf<DirectiveType, String>()
-
-        block.body.forEach { field ->
-            if (field !is DirectiveNode)
-                throw ProcessorException(
-                    "Unexpected ${field.javaClass.simpleName} in schema",
-                    Position(field.line, field.column)
-                )
-
-            if (!expectedFields.contains(field.type)) {
-                throw ProcessorException(
-                    "Unexpected directive ${field.type} in schema",
-                    Position(field.line, field.column)
-                )
-            }
-
-            if (fields.put(field.type, field.value) != null) {
-                throw ProcessorException(
-                    "Duplicate field ${field.type} in schema",
-                    Position(field.line, field.column)
-                )
-            }
-        }
-
-        if (fields.size != expectedFields.size) {
+        if (uniqueSchemaFields.size != uniqueFields.size) {
             throw ProcessorException(
                 "Schema does not contain all required fields (${
-                    expectedFields.map { it.identifier }.joinToString(", ")
+                    uniqueFields.map { it.identifier }.joinToString(", ")
                 })",
                 Position(block.line, block.column)
             )
         }
 
-        return fields
+        return Schema(uniqueSchemaFields, repeatingSchemaFields)
     }
 
     fun process(node: Node): Element {
