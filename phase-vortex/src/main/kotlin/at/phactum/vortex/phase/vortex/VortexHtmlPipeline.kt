@@ -1,13 +1,19 @@
-package at.phactum.vortex.phase.pipeline.preset
+package at.phactum.vortex.phase.vortex
 
-import at.phactum.vortex.phase.pipeline.SimplePipeline
-import at.phactum.vortex.phase.renderer.HtmlRenderer
 import at.phactum.vortex.phase.api.base.TreeAttachment
-import at.phactum.vortex.phase.treebuilder.HtmlTreeBuilder
+import at.phactum.vortex.phase.api.contract.Logger
+import at.phactum.vortex.phase.pipeline.SimplePipeline
+import at.phactum.vortex.phase.pipeline.StandardProjectScanner
+import at.phactum.vortex.phase.processor.StandardProcessor
+import at.phactum.vortex.phase.rendererimport.StandardHtmlRenderer
+import at.phactum.vortex.phase.treebuilder.StandardHtmlTreeBuilder
 
-class VortexHtmlPipeline : SimplePipeline(
-    HtmlRenderer(),
-    HtmlTreeBuilder().apply {
+class VortexHtmlPipeline(override val logger: Logger) : SimplePipeline(
+    logger,
+    StandardProjectScanner(logger),
+    StandardProcessor(logger),
+    StandardHtmlRenderer(logger),
+    StandardHtmlTreeBuilder(logger).apply {
         attach(
             TreeAttachment.ResourceAttachment(
                 "index.html",
@@ -32,4 +38,5 @@ class VortexHtmlPipeline : SimplePipeline(
                 "/vortex-html/open-color.css"
             )
         )
-    })
+    },
+)

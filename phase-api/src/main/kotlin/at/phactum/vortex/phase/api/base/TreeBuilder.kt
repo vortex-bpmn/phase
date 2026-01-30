@@ -1,15 +1,13 @@
 package at.phactum.vortex.phase.api.base
 
+import at.phactum.vortex.phase.api.contract.Logger
 import at.phactum.vortex.phase.api.exception.ConsolidatorException
 import at.phactum.vortex.phase.api.model.Project
 import at.phactum.vortex.phase.api.model.RenderedPage
-import org.slf4j.LoggerFactory
 import java.io.File
 import kotlin.collections.forEach
 
-abstract class TreeBuilder(val attachments: MutableList<TreeAttachment> = mutableListOf()) {
-    private val log = LoggerFactory.getLogger(javaClass)
-
+abstract class TreeBuilder(open val logger: Logger, open val attachments: MutableList<TreeAttachment> = mutableListOf()) {
     /**
      * Attach extra files to be emitted to the output directory.
      * The attachment path is always relative to the root output directory.
@@ -53,11 +51,12 @@ abstract class TreeBuilder(val attachments: MutableList<TreeAttachment> = mutabl
     }
 
     fun createAttachment(project: Project, outputDirectory: File, attachment: TreeAttachment) {
-        log.info("Creating Attachment: ${attachment.path}")
         val processedAttachment = preProcessAttachment(project, attachment)
         val attachmentFile = File(outputDirectory, attachment.path)
+        val bytes = processedAttachment.bytes()
         attachmentFile.parentFile?.mkdirs()
-        attachmentFile.writeBytes(processedAttachment.bytes())
+        attachmentFile.writeBytes(bytes)
+        logger.done("Written attachment ${attachment.path} (${bytes.size} bytes)")
     }
 
     abstract fun buildOutputTree(project: Project, pages: List<RenderedPage>, outputDirectory: File)
@@ -72,11 +71,7 @@ abstract class TreeBuilder(val attachments: MutableList<TreeAttachment> = mutabl
         mapOf(
             "PROJECT_NAME" to project.settings.name
         ).forEach { key, value ->
-            val newString = attachmentString.replace("\$$key", value)
-            if (attachmentString != newString) {
-                log.info("Substituting placeholder $$key -> $value")
-            }
-            attachmentString = newString
+            attachmentString = attachmentString.replace("\$$key", value)
         }
 
         return TreeAttachment.StringAttachment(attachment.path, attachmentString)

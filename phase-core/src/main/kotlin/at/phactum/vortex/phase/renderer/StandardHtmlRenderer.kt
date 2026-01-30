@@ -1,12 +1,9 @@
-package at.phactum.vortex.phase.renderer
+package at.phactum.vortex.phase.rendererimport
 
+import at.phactum.vortex.phase.api.base.Renderer
+import at.phactum.vortex.phase.api.contract.Logger
 import at.phactum.vortex.phase.api.exception.RendererException
-import at.phactum.vortex.phase.api.model.Block
-import at.phactum.vortex.phase.api.model.Metadata
-import at.phactum.vortex.phase.api.model.Section
-import at.phactum.vortex.phase.api.model.Table
-import at.phactum.vortex.phase.api.model.Text
-import at.phactum.vortex.phase.api.contract.Renderer
+import at.phactum.vortex.phase.api.model.*
 import org.jsoup.Jsoup
 
 open class StyleSheet
@@ -15,7 +12,9 @@ data class LinkedStyleSheet(val path: String) : StyleSheet()
 
 data class Script(val path: String, val module: Boolean = false, val defer: Boolean = true)
 
-class HtmlRenderer(
+class StandardHtmlRenderer(
+    override val logger: Logger,
+
     val stylesheet: StyleSheet? = null,
     val scripts: MutableList<Script> = mutableListOf(),
 
@@ -45,9 +44,9 @@ class HtmlRenderer(
     val tableHeaderRowClass: String = "table-header-row",
     val tableHeaderColClass: String = "table-header-col",
     val tableBodyColClass: String = "table-col",
-) : Renderer {
+) : Renderer(logger) {
 
-    override fun preamble(metadata: Metadata): String {
+    override fun preamble(projectMetadata: ProjectMetadata): String {
         val style = if (stylesheet == null)
             "<!-- No Stylesheet -->"
         else if (stylesheet is LinkedStyleSheet)
@@ -60,7 +59,7 @@ class HtmlRenderer(
         return """
             <html lang="$lang">
                 <head>
-                    <title>${metadata.title}</title>
+                    <title>${projectMetadata.title}</title>
                     $style
                     ${
             scripts.map { "<script${if (it.module) " type=\"module\"" else ""} src=\"${it.path}\"${if (it.defer) " defer" else ""}></script>" }
@@ -72,7 +71,7 @@ class HtmlRenderer(
         """
     }
 
-    override fun postamble(metadata: Metadata): String {
+    override fun postamble(projectMetadata: ProjectMetadata): String {
         return """
                     </div>
                 </body>
@@ -80,23 +79,23 @@ class HtmlRenderer(
         """
     }
 
-    override fun renderTitle(metadata: Metadata): String {
+    override fun renderTitle(projectMetadata: ProjectMetadata): String {
         return """
             <div class="$titleBlockWrapperClass">
                 <div class="$titleWrapperClass">
-                    <span class="$titleTextClass">${metadata.title}</span>
+                    <span class="$titleTextClass">${projectMetadata.title}</span>
                 </div>
                 <div class="$authorWrapperClass">
-                    <span class="$authorTextClass">${metadata.author}</span>
+                    <span class="$authorTextClass">${projectMetadata.author}</span>
                 </div>
                 <div class="$versionWrapperClass">
-                    <span class="$versionTextClass">${metadata.version}</span>
+                    <span class="$versionTextClass">${projectMetadata.version}</span>
                 </div>
             </div>
         """.trimIndent()
     }
 
-    override fun renderSection(metadata: Metadata, section: Section): String {
+    override fun renderSection(projectMetadata: ProjectMetadata, section: Section): String {
         return """
             <div class="$sectionWrapperClass">
                 <div class="$sectionHeaderClass">
@@ -108,13 +107,13 @@ class HtmlRenderer(
                     </div>
                 </div>
                 <div class="$sectionBodyClass">
-                   ${render(metadata, section.body)}
+                   ${render(projectMetadata, section.body)}
                 </div>
             </div>
         """
     }
 
-    override fun renderText(metadata: Metadata, text: Text): String {
+    override fun renderText(projectMetadata: ProjectMetadata, text: Text): String {
         return """
             <span class="$textClass">
                 ${text.text}
@@ -122,7 +121,7 @@ class HtmlRenderer(
         """
     }
 
-    override fun renderTable(metadata: Metadata, table: Table): String {
+    override fun renderTable(projectMetadata: ProjectMetadata, table: Table): String {
         if (table.rows.isEmpty())
             return "<!-- Not rendering empty table -->"
 
@@ -146,7 +145,7 @@ class HtmlRenderer(
             output.append("<tr class=\"$tableHeaderRowClass\">\n")
 
             for (col in row.columns) {
-                val colResult = render(metadata, col.body)
+                val colResult = render(projectMetadata, col.body)
 
                 if (index == 0) {
                     // First row (header)
@@ -182,11 +181,11 @@ class HtmlRenderer(
         return output.toString()
     }
 
-    override fun renderBlock(metadata: Metadata, block: Block): String {
-        return block.body.map { render(metadata, it) }.joinToString("\n")
+    override fun renderBlock(projectMetadata: ProjectMetadata, block: Block): String {
+        return block.body.map { render(projectMetadata, it) }.joinToString("\n")
     }
 
-    override fun postProcess(metadata: Metadata, result: String): String {
+    override fun postProcess(projectMetadata: ProjectMetadata, result: String): String {
         return Jsoup.parse(result).apply {
             outputSettings()
                 .prettyPrint(true)

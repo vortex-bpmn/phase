@@ -12,7 +12,7 @@ import at.phactum.vortex.phase.api.model.Row
 import at.phactum.vortex.phase.api.model.Table
 import at.phactum.vortex.phase.api.model.Text
 
-class TableProcessor(processor: Processor) : DirectiveProcessor(processor) {
+class TableProcessor(override val parentProcessor: StandardProcessor) : DirectiveProcessor(parentProcessor) {
     override fun process(node: DirectiveNode): Element {
         val rows = mutableListOf<DirectiveNode>()
         for (n in node.body) {

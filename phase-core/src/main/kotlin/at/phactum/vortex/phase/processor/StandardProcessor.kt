@@ -5,12 +5,13 @@ import at.phactum.vortex.phase.api.model.Attachment
 import at.phactum.vortex.phase.api.model.Block
 import at.phactum.vortex.phase.api.model.DirectiveNode
 import at.phactum.vortex.phase.api.DirectiveType
-import at.phactum.vortex.phase.api.contract.AstProcessor
+import at.phactum.vortex.phase.api.base.AstProcessor
+import at.phactum.vortex.phase.api.contract.Logger
 import at.phactum.vortex.phase.api.exception.Position
 import at.phactum.vortex.phase.api.exception.ProcessorException
 import at.phactum.vortex.phase.api.model.Element
 import at.phactum.vortex.phase.api.model.Field
-import at.phactum.vortex.phase.api.model.Metadata
+import at.phactum.vortex.phase.api.model.ProjectMetadata
 import at.phactum.vortex.phase.api.model.Node
 import at.phactum.vortex.phase.api.model.Page
 import at.phactum.vortex.phase.api.model.ParseResult
@@ -20,7 +21,7 @@ import at.phactum.vortex.phase.api.model.Text
 import at.phactum.vortex.phase.api.model.TextNode
 import kotlin.collections.iterator
 
-class Processor : AstProcessor {
+class StandardProcessor(override val logger: Logger) : AstProcessor(logger) {
     private val processors = mutableMapOf<DirectiveType, DirectiveProcessor>()
 
     init {
@@ -48,7 +49,7 @@ class Processor : AstProcessor {
         )
     }
 
-    private fun processMetadata(metadataDirective: DirectiveNode): Metadata {
+    private fun processMetadata(metadataDirective: DirectiveNode): ProjectMetadata {
         val schema = processSchema(
             metadataDirective,
             listOf(
@@ -60,7 +61,7 @@ class Processor : AstProcessor {
 
         val fields = schema.uniqueFields
 
-        return Metadata(
+        return ProjectMetadata(
             fields[DirectiveType.TITLE]!!.inlineValue,
             fields[DirectiveType.AUTHOR]!!.inlineValue,
             fields[DirectiveType.VERSION]!!.inlineValue

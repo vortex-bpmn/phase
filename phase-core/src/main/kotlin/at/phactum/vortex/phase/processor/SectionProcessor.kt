@@ -6,7 +6,7 @@ import at.phactum.vortex.phase.api.model.DirectiveNode
 import at.phactum.vortex.phase.api.model.Element
 import at.phactum.vortex.phase.api.model.Section
 
-class SectionProcessor(processor: Processor) : DirectiveProcessor(processor) {
+class SectionProcessor(override val parentProcessor: StandardProcessor) : DirectiveProcessor(parentProcessor) {
 
     private var sectionNumber = 1;
 

@@ -1,5 +1,5 @@
 plugins {
-    kotlin("jvm") version "2.2.21"
+    kotlin("jvm")
 }
 
 group = "at.phactum.vortex"
@@ -10,6 +10,7 @@ repositories {
 }
 
 dependencies {
+    implementation(project(":phase-core"))
     testImplementation(kotlin("test"))
 }
 

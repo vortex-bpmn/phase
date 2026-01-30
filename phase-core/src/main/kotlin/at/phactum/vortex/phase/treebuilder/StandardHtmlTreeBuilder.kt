@@ -1,17 +1,17 @@
 package at.phactum.vortex.phase.treebuilder
 
-import at.phactum.vortex.phase.api.model.Project
-import at.phactum.vortex.phase.api.model.RenderedPage
 import at.phactum.vortex.phase.api.base.TreeAttachment
 import at.phactum.vortex.phase.api.base.TreeBuilder
+import at.phactum.vortex.phase.api.contract.Logger
+import at.phactum.vortex.phase.api.model.Project
+import at.phactum.vortex.phase.api.model.RenderedPage
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
-import org.slf4j.LoggerFactory
 import java.io.File
 
 data class NavBarRecord(val title: String, val path: String)
 
-open class HtmlTreeBuilder : TreeBuilder(mutableListOf()) {
+open class StandardHtmlTreeBuilder(override val logger: Logger) : TreeBuilder(logger, mutableListOf()) {
 
     companion object {
         val NAV_INDEX_FILE = "nav_index.js"
@@ -19,8 +19,6 @@ open class HtmlTreeBuilder : TreeBuilder(mutableListOf()) {
 
     private val mapper = ObjectMapper()
         .enable(SerializationFeature.INDENT_OUTPUT)
-
-    private val log = LoggerFactory.getLogger(javaClass)
 
     private fun pageFilename(number: Int) = "page_$number.html"
 
@@ -36,7 +34,7 @@ open class HtmlTreeBuilder : TreeBuilder(mutableListOf()) {
             File(outputDirectory, filename).writeText(page.output)
             record.add(
                 NavBarRecord(
-                    page.metadata.title,
+                    page.projectMetadata.title,
                     filename
                 )
             )

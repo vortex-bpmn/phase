@@ -1,37 +1,30 @@
 package at.phactum.vortex.phase.pipeline
 
+import at.phactum.vortex.phase.api.base.*
+import at.phactum.vortex.phase.api.contract.Logger
 import at.phactum.vortex.phase.api.exception.PipelineException
-import at.phactum.vortex.phase.api.model.Block
-import at.phactum.vortex.phase.api.model.Metadata
-import at.phactum.vortex.phase.api.model.Page
-import at.phactum.vortex.phase.api.model.Project
-import at.phactum.vortex.phase.api.model.RenderedPage
-import at.phactum.vortex.phase.api.model.DirectiveNode
+import at.phactum.vortex.phase.api.model.*
 import at.phactum.vortex.phase.parser.Parser
-import at.phactum.vortex.phase.processor.Processor
-import at.phactum.vortex.phase.api.contract.Renderer
-import at.phactum.vortex.phase.api.base.TreeAttachment
-import at.phactum.vortex.phase.api.base.TreeBuilder
-import at.phactum.vortex.phase.api.contract.Pipeline
-import org.slf4j.LoggerFactory
 import java.io.File
 
-open class SimplePipeline(val renderer: Renderer, val treeBuilder: TreeBuilder): Pipeline {
-    private val log = LoggerFactory.getLogger(javaClass)
-
-    override fun buildProject(root: File, outputDir: File) {
+open class SimplePipeline(
+    override val logger: Logger,
+    override val projectScanner: ProjectScanner,
+    override val processor: AstProcessor,
+    override val renderer: Renderer,
+    override val treeBuilder: TreeBuilder
+) : Pipeline(logger, projectScanner, processor, renderer, treeBuilder) {
+    override fun buildProject(projectDir: File, outputDir: File) {
         val startTime = System.currentTimeMillis()
-        val structure = ProjectStructureScanner(root).scanProjectStructure()
 
-        val processor = Processor()
+        logger.working("Examining project structure ${projectDir.path}")
 
-        val parsedSettings = Parser.parseProjectSettings(structure.settingsFile)
-        val settings = processor.processProjectSettings(parsedSettings.rootBlock as DirectiveNode)
+        val (structure, settings) = scanProjectStructureAndParseSettings(projectDir)
 
-        log.info("Building project \"${settings.name}\" at ${root.path}")
+        logger.working("Building project ${settings.name}")
 
         settings.attachments.forEach {
-            val sourceFile = File(root, it.source)
+            val sourceFile = File(projectDir, it.source)
 
             if (!sourceFile.exists()) {
                 throw PipelineException("Custom attachment file does not exist: ${it.source}")
@@ -41,32 +34,35 @@ open class SimplePipeline(val renderer: Renderer, val treeBuilder: TreeBuilder):
                 throw PipelineException("Custom attachment file is a directory: ${it.source}")
             }
 
-            treeBuilder.attach(TreeAttachment.FileAttachment(
-                it.destination,
-                File(root, it.source),
-                true
-            ))
+            treeBuilder.attach(
+                TreeAttachment.FileAttachment(
+                    it.destination,
+                    File(projectDir, it.source),
+                    true
+                )
+            )
 
-            log.info("Registering custom attachment: ${it.source} -> ${it.destination}")
+            logger.done("Registering custom attachment: ${it.source} -> ${it.destination}")
         }
 
         val renderedPages = mutableListOf<RenderedPage>()
 
         // Parse, Process, and Render All Pages
-        structure.pageFiles.forEach { file ->
-            val relativePath = file.relativeTo(root).path
+        structure.pageFiles.forEachIndexed { index, file ->
+            val relativePath = file.relativeTo(projectDir).path
 
-            log.info("Compiling page $relativePath")
+            logger.working("Compiling page $relativePath (${index + 1}/${structure.pageFiles.size})")
             val parsedPage = Parser.parsePage(file)
             val page = processor.process(parsedPage)
             val output = render(page)
+            logger.done("Compiled $relativePath")
 
             renderedPages.add(
                 RenderedPage(
                     page,
                     output,
-                    page.metadata,
-                    root,
+                    page.projectMetadata,
+                    projectDir,
                     file
                 )
             )
@@ -74,26 +70,33 @@ open class SimplePipeline(val renderer: Renderer, val treeBuilder: TreeBuilder):
 
         val project = Project(renderedPages, settings)
 
-        log.info("Building output files")
+        logger.working("Packaging build outputs")
         treeBuilder.buildOutputTreeWithAttachments(renderedPages, project, outputDir, true)
-        log.info("Output files written to ${outputDir.path}")
+        logger.done("Output files written to ${outputDir.path}")
         val endTime = System.currentTimeMillis()
-        log.info("Done in ${endTime - startTime}ms")
+        logger.done("Done in ${endTime - startTime}ms")
+    }
+
+    override fun scanProjectStructureAndParseSettings(projectDir: File): Pair<ProjectStructure, ProjectSettings> {
+        val structure = projectScanner.scanProjectStructure(projectDir)
+        val parsedSettings = Parser.parseProjectSettings(structure.settingsFile)
+        val settings = processor.processProjectSettings(parsedSettings.rootBlock as DirectiveNode)
+        return structure to settings
     }
 
     override fun render(page: Page): String {
-        return render(page.metadata, page.root)
+        return render(page.projectMetadata, page.root)
     }
 
-    override fun render(metadata: Metadata, root: Block): String {
+    override fun render(projectMetadata: ProjectMetadata, root: Block): String {
         val renderer = renderer
         return renderer.postProcess(
-            metadata,
+            projectMetadata,
             """
-                ${renderer.preamble(metadata)}
-                ${renderer.renderTitle(metadata)}
-                ${renderer.render(metadata, root)}
-                ${renderer.postamble(metadata)}
+                ${renderer.preamble(projectMetadata)}
+                ${renderer.renderTitle(projectMetadata)}
+                ${renderer.render(projectMetadata, root)}
+                ${renderer.postamble(projectMetadata)}
             """.trimIndent()
         )
     }

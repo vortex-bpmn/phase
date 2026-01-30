@@ -10,6 +10,7 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/phase-api" />
+            <option value="$PROJECT_DIR$/phase-cli" />
             <option value="$PROJECT_DIR$/phase-core" />
             <option value="$PROJECT_DIR$/phase-html" />
             <option value="$PROJECT_DIR$/phase-vortex" />
