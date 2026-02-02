@@ -1,54 +1,96 @@
 package at.phactum.vortex.phase
 
 import at.phactum.vortex.phase.api.contract.Logger
+import at.phactum.vortex.phase.api.model.LogStatus
+import at.phactum.vortex.phase.api.model.LogStatus.*
 import com.github.ajalt.mordant.rendering.TextColors
+import com.github.ajalt.mordant.rendering.TextColors.Companion.gray
 import com.github.ajalt.mordant.rendering.TextColors.Companion.rgb
 import com.github.ajalt.mordant.rendering.TextStyle
+import com.github.ajalt.mordant.rendering.TextStyles
 import com.github.ajalt.mordant.terminal.Terminal
-import java.time.LocalTime
-import java.time.format.DateTimeFormatter
+
+data class Log(
+    val id: String,
+    val message: String,
+    var status: LogStatus
+)
+
+data class LogStyle(
+    val tagStyle: TextStyle,
+    val textStyle: TextStyle
+)
 
 class MordantLogger : Logger {
     private val terminal = Terminal()
+    private val logs = mutableListOf<Log>()
+    private var logsPrinted = 0
 
-    enum class LogLevel(val tagStyle: TextStyle, val textStyle: TextStyle) {
-        WORK(rgb("#3498db"), TextColors.gray(0.7)),
-        DONE(rgb("#2ecc71"), TextColors.gray(0.7)),
-        INFO(TextColors.gray(0.7), TextColors.gray(0.7)),
-        ERR(rgb("#e74c3c"), TextColors.gray(1)),
-        WARN(rgb("#f1c40f"), TextColors.gray(1))
+    private fun statusStyle(status: LogStatus): LogStyle {
+        return when (status) {
+            DONE  -> LogStyle(rgb("#7EDC9A"), TextColors.white)
+            WORK  -> LogStyle(rgb("#82B1FF"), TextColors.gray)
+            ERROR -> LogStyle(rgb("#FF8A8A"), TextColors.white)
+            WARN  -> LogStyle(rgb("#F6C177"), TextColors.white) // muted peach
+            INFO  -> LogStyle(rgb("#D0D0D0"), TextColors.white)
+        }
     }
 
-    private fun render(level: LogLevel, message: String) {
-        val logLevelName = level.name.padEnd(LogLevel.entries.map { it.name.length }.max())
-        val timeStamp = LocalTime.now().format(
-            DateTimeFormatter.ofPattern("HH:mm:ss:SSS")
-        )
+    private fun prepareMessage(log: Log): String {
+        val maxLevelNameLength = LogStatus.entries.map { it.name.length }.maxOrNull() ?: 0
+        val logLevelName = log.status.name.padEnd(maxLevelNameLength)
 
-        terminal.println(
-            level.tagStyle(logLevelName) + " " +
-                    TextColors.gray(0.5)(timeStamp) + " " +
-                    level.textStyle(message)
-        )
+        val style = statusStyle(log.status)
+
+        return (TextStyles.bold + style.tagStyle)(logLevelName) + " " + style.textStyle(log.message)
     }
 
-    override fun working(message: String) {
-        render(LogLevel.WORK, message)
+    private fun render(index: Int, isNew: Boolean) {
+        val log = logs[index]
+
+        val message = prepareMessage(log)
+
+        if (isNew) {
+            terminal.println(message)
+            logsPrinted++
+        } else {
+            val linesUp = logsPrinted - index
+            terminal.cursor.move {
+                up(linesUp)
+                startOfLine()
+                clearLine()
+            }
+
+            terminal.print(message)
+
+            terminal.cursor.move {
+                down(linesUp)
+                startOfLine()
+                clearLine()
+            }
+        }
     }
 
-    override fun done(message: String) {
-        render(LogLevel.DONE, message)
+    override fun log(status: LogStatus, message: String, id: String): String {
+        logs.add(Log(id, message, status))
+        render(logs.size - 1, true)
+        return id
     }
 
-    override fun info(message: String) {
-        render(LogLevel.INFO, message)
+    override fun working(message: String, id: String): String = log(LogStatus.WORK, message, id)
+    override fun error(message: String, id: String): String = log(LogStatus.ERROR, message, id)
+    override fun warn(message: String, id: String): String = log(LogStatus.WARN, message, id)
+    override fun info(message: String, id: String): String = log(LogStatus.INFO, message, id)
+
+    override fun update(id: String, status: LogStatus) {
+        val logIndex = logs.indexOfFirst { it.id == id }
+        if (logIndex == -1) return
+        logs[logIndex].status = status
+        render(logIndex, false)
     }
 
-    override fun warning(message: String) {
-        render(LogLevel.WARN, message)
-    }
-
-    override fun error(message: String) {
-        render(LogLevel.ERR, message)
+    override fun resolve(id: String) {
+        val log = logs.find { it.id == id } ?: return
+        update(id, log.status.resolve())
     }
 }

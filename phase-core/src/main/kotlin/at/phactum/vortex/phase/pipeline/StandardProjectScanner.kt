@@ -43,7 +43,7 @@ class StandardProjectScanner(override val logger: Logger) : ProjectScanner(logge
                 return@forEach
             }
 
-            logger.warning("Ignoring unexpected file in project directory: ${file.path}")
+            logger.warn("Ignoring unexpected file in project directory: ${file.path}")
         }
 
         if (pageFiles.isEmpty()) {

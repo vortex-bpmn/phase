@@ -1,0 +1,12 @@
+package at.phactum.vortex.phase.api.model
+
+enum class LogStatus(val resolvesTo: LogStatus? = null) {
+    DONE,
+    WORK(DONE),
+
+    ERROR,
+    WARN,
+    INFO;
+
+    fun resolve(): LogStatus = resolvesTo ?: this
+}

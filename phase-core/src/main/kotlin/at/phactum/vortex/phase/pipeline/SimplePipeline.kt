@@ -17,12 +17,11 @@ open class SimplePipeline(
     override fun buildProject(projectDir: File, outputDir: File) {
         val startTime = System.currentTimeMillis()
 
-        logger.working("Examining project structure ${projectDir.path}")
-
+        val examiningStructure = logger.working("Examining project structure ${projectDir.path}")
         val (structure, settings) = scanProjectStructureAndParseSettings(projectDir)
+        logger.resolve(examiningStructure)
 
-        logger.working("Building project ${settings.name}")
-
+        val buildingProject = logger.working("Building project \"${settings.name}\"")
         settings.attachments.forEach {
             val sourceFile = File(projectDir, it.source)
 
@@ -42,7 +41,7 @@ open class SimplePipeline(
                 )
             )
 
-            logger.done("Registering custom attachment: ${it.source} -> ${it.destination}")
+            logger.info("Registering custom attachment: ${it.source} -> ${it.destination}")
         }
 
         val renderedPages = mutableListOf<RenderedPage>()
@@ -51,11 +50,11 @@ open class SimplePipeline(
         structure.pageFiles.forEachIndexed { index, file ->
             val relativePath = file.relativeTo(projectDir).path
 
-            logger.working("Compiling page $relativePath (${index + 1}/${structure.pageFiles.size})")
+            val compilePage = logger.working("Compiling page $relativePath (${index + 1}/${structure.pageFiles.size})")
             val parsedPage = Parser.parsePage(file)
             val page = processor.process(parsedPage)
             val output = render(page)
-            logger.done("Compiled $relativePath")
+            logger.resolve(compilePage)
 
             renderedPages.add(
                 RenderedPage(
@@ -70,11 +69,14 @@ open class SimplePipeline(
 
         val project = Project(renderedPages, settings)
 
-        logger.working("Packaging build outputs")
+        val packageOutputs = logger.working("Package build outputs")
         treeBuilder.buildOutputTreeWithAttachments(renderedPages, project, outputDir, true)
-        logger.done("Output files written to ${outputDir.path}")
+        logger.resolve(packageOutputs)
+
         val endTime = System.currentTimeMillis()
-        logger.done("Done in ${endTime - startTime}ms")
+
+        logger.resolve(buildingProject)
+        logger.info("Done in ${endTime - startTime}ms")
     }
 
     override fun scanProjectStructureAndParseSettings(projectDir: File): Pair<ProjectStructure, ProjectSettings> {

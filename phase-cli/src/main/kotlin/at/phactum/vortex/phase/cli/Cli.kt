@@ -1,6 +1,7 @@
 package at.phactum.vortex.phase.cli
 
 import at.phactum.vortex.phase.MordantLogger
+import at.phactum.vortex.phase.api.model.LogStatus
 import at.phactum.vortex.phase.vortex.VortexHtmlPipeline
 import com.github.ajalt.clikt.core.main
 import com.github.ajalt.clikt.core.subcommands

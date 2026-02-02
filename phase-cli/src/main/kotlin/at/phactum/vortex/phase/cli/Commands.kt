@@ -14,7 +14,6 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.file
 import java.io.File
-import kotlin.math.log
 
 class PhaseCommand : CliktCommand() {
     override fun help(context: Context): String {
@@ -35,7 +34,9 @@ class InitCommand(val pipeline: Pipeline, val logger: Logger) : CliktCommand(nam
             logger.error("Directory $dir already exists.")
             return
         }
-        logger.working("Creating project $dir")
+
+        val creatingProject = logger.working("Creating project $dir")
+
         dir.mkdirs()
         File(dir, "${dir.name}.${Constants.PHASE_PROJECT_EXTENSION}")
             .writeText(
@@ -57,7 +58,7 @@ class InitCommand(val pipeline: Pipeline, val logger: Logger) : CliktCommand(nam
             """.trimMargin()
         )
 
-        logger.done("Created project \"$name\" in directory ${dir.path}")
+        logger.resolve(creatingProject)
     }
 }
 
@@ -69,7 +70,7 @@ class CreatePage(val pipeline: Pipeline, val logger: Logger) : CliktCommand(name
     val version by option("-v", "--version", help = "Version of the new page").required()
 
     override fun run() {
-        logger.working("Creating page $fileName titled \"$title\" by \"$author\" V$version")
+        val createPage = logger.working("Create page $fileName titled \"$title\" by \"$author\" V$version")
         File("$fileName.${Constants.PHASE_PAGE_EXTENSION}").writeText(
             """
                 |@meta
@@ -81,7 +82,7 @@ class CreatePage(val pipeline: Pipeline, val logger: Logger) : CliktCommand(name
                 |Hello, World!
             """.trimMargin()
         )
-        logger.done("Page created.")
+        logger.resolve(createPage)
     }
 }
 
@@ -104,7 +105,7 @@ class InspectCommand(val pipeline: Pipeline, val logger: Logger) : CliktCommand(
             return
         }
 
-        logger.working("Inspecting project: ${projectDir.path}")
+        val inspectingProject = logger.working("Inspecting project: ${projectDir.path}")
         val structure: ProjectStructure
         val settings: ProjectSettings
         try {
@@ -119,8 +120,14 @@ class InspectCommand(val pipeline: Pipeline, val logger: Logger) : CliktCommand(
         if (settings.attachments.isNotEmpty()) {
             logger.info("Attachments (${settings.attachments.size}):")
             val maxSource = settings.attachments.maxOf { it.source.length }
-            settings.attachments.forEach {
-                logger.info("  + ${it.source.padEnd(maxSource)} -> ${it.destination}")
+            settings.attachments.forEachIndexed { index, it ->
+                val isLast = index == settings.attachments.size - 1
+                val treeCharacter: String = if (isLast) {
+                    "└──"
+                } else {
+                    "├──"
+                }
+                logger.info("$treeCharacter ${it.source.padEnd(maxSource)} -> ${it.destination}")
             }
         } else {
             logger.info("This project does not contain any custom attachments")
@@ -128,18 +135,24 @@ class InspectCommand(val pipeline: Pipeline, val logger: Logger) : CliktCommand(
 
         if (structure.pageFiles.isNotEmpty()) {
             logger.info("Pages (${structure.pageFiles.size}):")
-            structure.pageFiles.forEach {
-                logger.info("  + ${it.relativeTo(projectDir).path}")
+            structure.pageFiles.forEachIndexed { index, it ->
+                val isLast = index == structure.pageFiles.size - 1
+                val treeCharacter: String = if (isLast) {
+                    "└──"
+                } else {
+                    "├──"
+                }
+                logger.info("$treeCharacter ${it.relativeTo(projectDir).path}")
             }
         } else {
             logger.info("This project does not contain any pages")
         }
 
-        logger.done("End of inspection report")
+        logger.resolve(inspectingProject)
     }
 }
 
-class BuildCommand(val pipeline: Pipeline, val logger: Logger) : CliktCommand(name = "compile") {
+class BuildCommand(val pipeline: Pipeline, val logger: Logger) : CliktCommand(name = "build") {
     val projectDir by argument(name = "project", help = "Project source directory")
         .file(mustExist = true, canBeDir = true, canBeFile = false)
 
@@ -163,7 +176,7 @@ class BuildCommand(val pipeline: Pipeline, val logger: Logger) : CliktCommand(na
         }
 
         if (output.exists()) {
-            logger.error("Output directory $output already exists.")
+            logger.error("Output directory already exists: $output")
             return
         }
 

@@ -2,12 +2,15 @@ package at.phactum.vortex.phase.api.base
 
 import at.phactum.vortex.phase.api.contract.Logger
 import at.phactum.vortex.phase.api.exception.ConsolidatorException
+import at.phactum.vortex.phase.api.model.LogStatus
 import at.phactum.vortex.phase.api.model.Project
 import at.phactum.vortex.phase.api.model.RenderedPage
 import java.io.File
-import kotlin.collections.forEach
 
-abstract class TreeBuilder(open val logger: Logger, open val attachments: MutableList<TreeAttachment> = mutableListOf()) {
+abstract class TreeBuilder(
+    open val logger: Logger,
+    open val attachments: MutableList<TreeAttachment> = mutableListOf()
+) {
     /**
      * Attach extra files to be emitted to the output directory.
      * The attachment path is always relative to the root output directory.
@@ -25,7 +28,12 @@ abstract class TreeBuilder(open val logger: Logger, open val attachments: Mutabl
         attachments.add(attachment)
     }
 
-    fun buildOutputTreeWithAttachments(pages: List<RenderedPage>, project: Project, outputDirectory: File, overwrite: Boolean = false) {
+    fun buildOutputTreeWithAttachments(
+        pages: List<RenderedPage>,
+        project: Project,
+        outputDirectory: File,
+        overwrite: Boolean = false
+    ) {
         if (outputDirectory.exists()) {
             if (!overwrite)
                 throw ConsolidatorException("Output directory already exists: ${outputDirectory.path}")
@@ -51,12 +59,15 @@ abstract class TreeBuilder(open val logger: Logger, open val attachments: Mutabl
     }
 
     fun createAttachment(project: Project, outputDirectory: File, attachment: TreeAttachment) {
+        val working = logger.working("Write attachment ${attachment.path}")
+
         val processedAttachment = preProcessAttachment(project, attachment)
         val attachmentFile = File(outputDirectory, attachment.path)
         val bytes = processedAttachment.bytes()
         attachmentFile.parentFile?.mkdirs()
         attachmentFile.writeBytes(bytes)
-        logger.done("Written attachment ${attachment.path} (${bytes.size} bytes)")
+
+        logger.resolve(working)
     }
 
     abstract fun buildOutputTree(project: Project, pages: List<RenderedPage>, outputDirectory: File)
