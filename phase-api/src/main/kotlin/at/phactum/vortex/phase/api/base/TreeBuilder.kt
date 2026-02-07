@@ -2,7 +2,6 @@ package at.phactum.vortex.phase.api.base
 
 import at.phactum.vortex.phase.api.contract.Logger
 import at.phactum.vortex.phase.api.exception.ConsolidatorException
-import at.phactum.vortex.phase.api.model.LogStatus
 import at.phactum.vortex.phase.api.model.Project
 import at.phactum.vortex.phase.api.model.RenderedPage
 import java.io.File

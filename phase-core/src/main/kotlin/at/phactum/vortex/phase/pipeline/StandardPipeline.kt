@@ -4,10 +4,12 @@ import at.phactum.vortex.phase.api.base.*
 import at.phactum.vortex.phase.api.contract.Logger
 import at.phactum.vortex.phase.api.exception.PipelineException
 import at.phactum.vortex.phase.api.model.*
+import at.phactum.vortex.phase.api.model.tree.AstNode
+import at.phactum.vortex.phase.api.model.tree.RenderNode
 import at.phactum.vortex.phase.parser.Parser
 import java.io.File
 
-open class SimplePipeline(
+open class StandardPipeline(
     override val logger: Logger,
     override val projectScanner: ProjectScanner,
     override val processor: AstProcessor,
@@ -82,7 +84,7 @@ open class SimplePipeline(
     override fun scanProjectStructureAndParseSettings(projectDir: File): Pair<ProjectStructure, ProjectSettings> {
         val structure = projectScanner.scanProjectStructure(projectDir)
         val parsedSettings = Parser.parseProjectSettings(structure.settingsFile)
-        val settings = processor.processProjectSettings(parsedSettings.rootBlock as DirectiveNode)
+        val settings = processor.processProjectSettings(parsedSettings.rootBlock as AstNode.DirectiveNode)
         return structure to settings
     }
 
@@ -90,7 +92,7 @@ open class SimplePipeline(
         return render(page.projectMetadata, page.root)
     }
 
-    override fun render(projectMetadata: ProjectMetadata, root: Block): String {
+    override fun render(projectMetadata: ProjectMetadata, root: RenderNode.Container): String {
         val renderer = renderer
         return renderer.postProcess(
             projectMetadata,

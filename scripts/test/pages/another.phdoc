@@ -4,6 +4,10 @@
     @version 1.0
 @end
 
+@function $test(a)
+
+@end
+
 @section Welcome
    Welcome to Phase!
 @end

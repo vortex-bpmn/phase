@@ -1,7 +1,7 @@
 package at.phactum.vortex.phase.api.contract
 
 import at.phactum.vortex.phase.api.model.LogStatus
-import java.util.UUID
+import java.util.*
 
 interface Logger {
     fun log(status: LogStatus, message: String, id: String = UUID.randomUUID().toString()): String
@@ -13,4 +13,6 @@ interface Logger {
 
     fun update(id: String, status: LogStatus)
     fun resolve(id: String)
+
+    fun failAll()
 }

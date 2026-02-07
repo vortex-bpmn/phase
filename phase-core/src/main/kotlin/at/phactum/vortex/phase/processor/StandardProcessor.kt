@@ -1,45 +1,36 @@
 package at.phactum.vortex.phase.processor
 
-import at.phactum.vortex.phase.api.base.DirectiveProcessor
-import at.phactum.vortex.phase.api.model.Attachment
-import at.phactum.vortex.phase.api.model.Block
-import at.phactum.vortex.phase.api.model.DirectiveNode
 import at.phactum.vortex.phase.api.DirectiveType
 import at.phactum.vortex.phase.api.base.AstProcessor
+import at.phactum.vortex.phase.api.base.DirectiveProcessor
 import at.phactum.vortex.phase.api.contract.Logger
 import at.phactum.vortex.phase.api.exception.Position
 import at.phactum.vortex.phase.api.exception.ProcessorException
-import at.phactum.vortex.phase.api.model.Element
-import at.phactum.vortex.phase.api.model.Field
-import at.phactum.vortex.phase.api.model.ProjectMetadata
-import at.phactum.vortex.phase.api.model.Node
-import at.phactum.vortex.phase.api.model.Page
-import at.phactum.vortex.phase.api.model.ParseResult
-import at.phactum.vortex.phase.api.model.ProjectSettings
-import at.phactum.vortex.phase.api.model.Schema
-import at.phactum.vortex.phase.api.model.Text
-import at.phactum.vortex.phase.api.model.TextNode
-import kotlin.collections.iterator
+import at.phactum.vortex.phase.api.model.*
+import at.phactum.vortex.phase.api.model.tree.*
 
 class StandardProcessor(override val logger: Logger) : AstProcessor(logger) {
     private val processors = mutableMapOf<DirectiveType, DirectiveProcessor>()
 
+    private val functions = mutableMapOf<String, DefinedFunction>()
+
     init {
         registerProcessor(DirectiveType.SECTION, SectionProcessor(this))
         registerProcessor(DirectiveType.TABLE, TableProcessor(this))
+        registerProcessor(DirectiveType.FUNCTION_DEFINITION, FunctionDefinitionProcessor(this))
     }
 
     private fun registerProcessor(type: DirectiveType, processor: DirectiveProcessor) {
         processors[type] = processor
     }
 
-    override fun process(nodes: List<Node>): List<Element> {
+    override fun process(nodes: List<AstNode>): List<RenderNode> {
         return nodes.map { process(it) }
     }
 
     override fun process(page: ParseResult.ParsedPage): Page {
         val rootBlock = process(page.rootBlock)
-        if (rootBlock !is Block)
+        if (rootBlock !is RenderNode.Container)
             throw ProcessorException("Page is expected to contain a top-level block. This should not happen")
 
         return Page(
@@ -49,7 +40,61 @@ class StandardProcessor(override val logger: Logger) : AstProcessor(logger) {
         )
     }
 
-    private fun processMetadata(metadataDirective: DirectiveNode): ProjectMetadata {
+    // Turn a node into its respective element in the rendering tree
+    override fun process(node: AstNode): RenderNode {
+        if (node is TextualNode.PlainTextNode) {
+            return TextualRenderNode.PlainText(node.text)
+        }
+
+        if (node is TextualNode.TextRunNode) {
+            return TextualRenderNode.TextRun(process(node.components).map {
+                if (it !is TextualRenderNode) {
+                    throw ProcessorException(
+                        "Text run component is required to be textual, got ${it.javaClass.simpleName}",
+                        Position(node.line, node.column)
+                    )
+                }
+
+                it
+            })
+        }
+
+        if (node is AstNode.BlockNode) {
+            val container = RenderNode.Container(process(node.nodes))
+            return container
+        }
+
+        if (node is TextualNode.CallNode)
+            return process(invokeFunction(node.functionIdentifier, node.parameterValue))
+
+        val directive = (node as? AstNode.DirectiveNode)
+            ?: throw ProcessorException("Unexpected node ${node.javaClass.simpleName}")
+
+        if (directive.type == DirectiveType.BLOCK) {
+            return RenderNode.Container(
+                process(
+                    directive.block.nodes
+                        .filter { !(it is AstNode.DirectiveNode && it.type == DirectiveType.META) }
+                )
+            )
+        }
+
+        if (directive.type == DirectiveType.END) {
+            throw ProcessorException("Unexpected ${DirectiveType.END.prefixed()} directive")
+        }
+
+        for ((type, transformer) in processors) {
+            if (directive.type == type)
+                return transformer.process(directive)
+        }
+
+        throw ProcessorException(
+            "Directive ${directive.type.prefixed()} not allowed here",
+            Position(node.line, node.column)
+        )
+    }
+
+    private fun processMetadata(metadataDirective: AstNode.DirectiveNode): ProjectMetadata {
         val schema = processSchema(
             metadataDirective,
             listOf(
@@ -68,7 +113,7 @@ class StandardProcessor(override val logger: Logger) : AstProcessor(logger) {
         )
     }
 
-    override fun processProjectSettings(block: DirectiveNode): ProjectSettings {
+    override fun processProjectSettings(block: AstNode.DirectiveNode): ProjectSettings {
         val attachments = mutableListOf<Attachment>()
 
         val schema = processSchema(
@@ -107,15 +152,15 @@ class StandardProcessor(override val logger: Logger) : AstProcessor(logger) {
     }
 
     override fun processSchema(
-        block: DirectiveNode,
+        block: AstNode.DirectiveNode,
         uniqueFields: List<DirectiveType>,
         repeatingFields: List<DirectiveType>
     ): Schema {
         val uniqueSchemaFields = mutableMapOf<DirectiveType, Field>()
         val repeatingSchemaFields = mutableListOf<Pair<DirectiveType, Field>>()
 
-        block.body.forEach { field ->
-            if (field !is DirectiveNode)
+        block.block.nodes.forEach { field ->
+            if (field !is AstNode.DirectiveNode)
                 throw ProcessorException(
                     "Unexpected ${field.javaClass.simpleName} in schema",
                     Position(field.line, field.column)
@@ -154,31 +199,27 @@ class StandardProcessor(override val logger: Logger) : AstProcessor(logger) {
         return Schema(uniqueSchemaFields, repeatingSchemaFields)
     }
 
-    override fun process(node: Node): Element {
-        if (node is TextNode)
-            return Text(node.text)
+    override fun defineFunction(
+        specification: DirectiveInlineValueNode.InlineFunctionSpecNode,
+        block: AstNode.BlockNode
+    ) {
+        if (functions.put(specification.functionName, DefinedFunction(specification, block)) == null)
+            return
 
-        val directive = (node as? DirectiveNode)
-            ?: throw ProcessorException("Unexpected node ${node.javaClass.simpleName}")
-
-        if (directive.type == DirectiveType.BLOCK) {
-            return Block(
-                process(
-                    directive.body
-                        .filter { !(it is DirectiveNode && it.type == DirectiveType.META) }
-                )
-            )
-        }
-
-        if (directive.type == DirectiveType.END) {
-            throw ProcessorException("Unexpected @end directive")
-        }
-
-        for ((type, transformer) in processors) {
-            if (directive.type == type)
-                return transformer.process(directive)
-        }
-
-        throw ProcessorException("Directive ${directive.type} not allowed here", Position(node.line, node.column))
+        throw ProcessorException("Function was already declared before: ${specification.functionName}")
     }
+
+    override fun invokeFunction(
+        functionIdentifier: String,
+        parameter: AstNode
+    ): AstNode {
+        val function =
+            functions[functionIdentifier] ?: throw ProcessorException("Function $functionIdentifier not found")
+
+        val children = mutableListOf<AstNode>()
+
+        return parameter
+    }
+
+
 }

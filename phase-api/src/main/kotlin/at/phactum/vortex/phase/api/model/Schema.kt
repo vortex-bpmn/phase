@@ -1,18 +1,22 @@
 package at.phactum.vortex.phase.api.model
 
 import at.phactum.vortex.phase.api.DirectiveType
+import at.phactum.vortex.phase.api.model.tree.AstNode
+import at.phactum.vortex.phase.api.model.tree.DirectiveInlineValueNode
 
 data class Field(
     val type: DirectiveType,
-    val node: DirectiveNode,
+    val node: AstNode.DirectiveNode,
     val inlineValue: String
 ) {
     companion object {
-        fun from(directive: DirectiveNode): Field = Field(
-            directive.type,
-            directive,
-            directive.value
-        )
+        fun from(directive: AstNode.DirectiveNode): Field {
+            return Field(
+                directive.type,
+                directive,
+                if (directive.value is DirectiveInlineValueNode.InlineTextNode) directive.value.value else ""
+            )
+        }
     }
 }
 

@@ -4,39 +4,36 @@ import at.phactum.vortex.phase.api.DirectiveType
 import at.phactum.vortex.phase.api.base.DirectiveProcessor
 import at.phactum.vortex.phase.api.exception.Position
 import at.phactum.vortex.phase.api.exception.ProcessorException
-import at.phactum.vortex.phase.api.model.Block
-import at.phactum.vortex.phase.api.model.Column
-import at.phactum.vortex.phase.api.model.DirectiveNode
-import at.phactum.vortex.phase.api.model.Element
-import at.phactum.vortex.phase.api.model.Row
-import at.phactum.vortex.phase.api.model.Table
-import at.phactum.vortex.phase.api.model.Text
+import at.phactum.vortex.phase.api.model.tree.AstNode
+import at.phactum.vortex.phase.api.model.tree.DirectiveInlineValueNode
+import at.phactum.vortex.phase.api.model.tree.RenderNode
+import at.phactum.vortex.phase.api.model.tree.TextualRenderNode
 
 class TableProcessor(override val parentProcessor: StandardProcessor) : DirectiveProcessor(parentProcessor) {
-    override fun process(node: DirectiveNode): Element {
-        val rows = mutableListOf<DirectiveNode>()
-        for (n in node.body) {
-            if (n !is DirectiveNode)
+    override fun process(node: AstNode.DirectiveNode): RenderNode {
+        val rows = mutableListOf<AstNode.DirectiveNode>()
+        for (n in node.block.nodes) {
+            if (n !is AstNode.DirectiveNode)
                 throw ProcessorException("${n.javaClass.simpleName} is not allowed directly in a table")
 
             if (n.type != DirectiveType.TABLE_ROW)
-                throw ProcessorException("${n.type} is not allowed directly in a table. Expected zero or more @row")
+                throw ProcessorException("${n.type} is not allowed directly in a table. Expected zero or more ${DirectiveType.TABLE_ROW.prefixed()}")
 
             rows.add(n)
         }
 
         val rowElements = processRows(rows)
-        return Table(rowElements)
+        return RenderNode.Table(rowElements)
     }
 
-    private fun processRows(rows: List<DirectiveNode>): List<Row> {
-        val rowElements = mutableListOf<Row>()
+    private fun processRows(rows: List<AstNode.DirectiveNode>): List<RenderNode.Row> {
+        val rowElements = mutableListOf<RenderNode.Row>()
 
         for (row in rows) {
-            val rowElement = Row(mutableListOf())
+            val rowElement = RenderNode.Row(mutableListOf())
 
-            for (col in row.body) {
-                if (col !is DirectiveNode)
+            for (col in row.block.nodes) {
+                if (col !is AstNode.DirectiveNode)
                     throw ProcessorException(
                         "${col.javaClass.simpleName} is not allowed directly in a table",
                         Position(col.line, col.column)
@@ -44,16 +41,22 @@ class TableProcessor(override val parentProcessor: StandardProcessor) : Directiv
 
                 if (col.type != DirectiveType.TABLE_COLUMN && col.type != DirectiveType.TABLE_INLINE_COLUMN)
                     throw ProcessorException(
-                        "${col.type} is not allowed directly in a row. Expected zero or more @col or @icol",
+                        "${col.type} is not allowed directly in a row. Expected zero or more ${DirectiveType.TABLE_COLUMN.prefixed()} or ${DirectiveType.TABLE_INLINE_COLUMN.prefixed()}",
                         Position(col.line, col.column)
                     )
 
-                val columnBody = if (col.type == DirectiveType.TABLE_COLUMN)
-                    parentProcessor.process(col.body)
-                else
-                    listOf(Text(col.value))
+                if (col.value !is DirectiveInlineValueNode.InlineTextNode)
+                    throw ProcessorException(
+                        "Unexpected inline value type ${col.value.javaClass.simpleName} in a column",
+                        col.position()
+                    )
 
-                val column = Column(Block(columnBody))
+                val columnBody = if (col.type == DirectiveType.TABLE_COLUMN)
+                    parentProcessor.process(col.block.nodes)
+                else
+                    listOf(TextualRenderNode.PlainText((col.value as DirectiveInlineValueNode.InlineTextNode).value))
+
+                val column = RenderNode.Column(RenderNode.Container(columnBody))
                 rowElement.columns.add(column)
             }
 

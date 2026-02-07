@@ -3,7 +3,9 @@ package at.phactum.vortex.phase.rendererimport
 import at.phactum.vortex.phase.api.base.Renderer
 import at.phactum.vortex.phase.api.contract.Logger
 import at.phactum.vortex.phase.api.exception.RendererException
-import at.phactum.vortex.phase.api.model.*
+import at.phactum.vortex.phase.api.model.ProjectMetadata
+import at.phactum.vortex.phase.api.model.tree.RenderNode
+import at.phactum.vortex.phase.api.model.tree.TextualRenderNode
 import org.jsoup.Jsoup
 
 open class StyleSheet
@@ -95,7 +97,7 @@ class StandardHtmlRenderer(
         """.trimIndent()
     }
 
-    override fun renderSection(projectMetadata: ProjectMetadata, section: Section): String {
+    override fun renderSection(projectMetadata: ProjectMetadata, section: RenderNode.Section): String {
         return """
             <div class="$sectionWrapperClass">
                 <div class="$sectionHeaderClass">
@@ -113,7 +115,20 @@ class StandardHtmlRenderer(
         """
     }
 
-    override fun renderText(projectMetadata: ProjectMetadata, text: Text): String {
+    override fun renderTextRun(
+        projectMetadata: ProjectMetadata,
+        textRun: TextualRenderNode.TextRun
+    ): String {
+        return textRun.components.map {
+            when (it) {
+                is TextualRenderNode.PlainText -> renderPlainText(projectMetadata, it)
+                is TextualRenderNode.StyledText -> renderStyledText(projectMetadata, it)
+                is TextualRenderNode.TextRun -> renderTextRun(projectMetadata, it)
+            }
+        }.joinToString("\n")
+    }
+
+    override fun renderPlainText(projectMetadata: ProjectMetadata, text: TextualRenderNode.PlainText): String {
         return """
             <span class="$textClass">
                 ${text.text}
@@ -121,7 +136,19 @@ class StandardHtmlRenderer(
         """
     }
 
-    override fun renderTable(projectMetadata: ProjectMetadata, table: Table): String {
+    override fun renderStyledText(
+        projectMetadata: ProjectMetadata,
+        styledText: TextualRenderNode.StyledText
+    ): String {
+        return """
+            <!-- STYLED TEXT -->
+            <span class="$textClass">
+                ${styledText.text}
+            </span>
+        """
+    }
+
+    override fun renderTable(projectMetadata: ProjectMetadata, table: RenderNode.Table): String {
         if (table.rows.isEmpty())
             return "<!-- Not rendering empty table -->"
 
@@ -181,8 +208,8 @@ class StandardHtmlRenderer(
         return output.toString()
     }
 
-    override fun renderBlock(projectMetadata: ProjectMetadata, block: Block): String {
-        return block.body.map { render(projectMetadata, it) }.joinToString("\n")
+    override fun renderContainer(projectMetadata: ProjectMetadata, container: RenderNode.Container): String {
+        return container.body.map { render(projectMetadata, it) }.joinToString("\n")
     }
 
     override fun postProcess(projectMetadata: ProjectMetadata, result: String): String {

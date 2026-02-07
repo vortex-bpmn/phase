@@ -4,7 +4,6 @@ import at.phactum.vortex.phase.api.contract.Logger
 import at.phactum.vortex.phase.api.model.LogStatus
 import at.phactum.vortex.phase.api.model.LogStatus.*
 import com.github.ajalt.mordant.rendering.TextColors
-import com.github.ajalt.mordant.rendering.TextColors.Companion.gray
 import com.github.ajalt.mordant.rendering.TextColors.Companion.rgb
 import com.github.ajalt.mordant.rendering.TextStyle
 import com.github.ajalt.mordant.rendering.TextStyles
@@ -28,11 +27,12 @@ class MordantLogger : Logger {
 
     private fun statusStyle(status: LogStatus): LogStyle {
         return when (status) {
-            DONE  -> LogStyle(rgb("#7EDC9A"), TextColors.white)
-            WORK  -> LogStyle(rgb("#82B1FF"), TextColors.gray)
+            DONE -> LogStyle(rgb("#7EDC9A"), TextColors.white)
+            FAIL -> LogStyle(rgb("#FF8A8A"), TextColors.white)
+            WORK -> LogStyle(rgb("#82B1FF"), TextColors.gray)
             ERROR -> LogStyle(rgb("#FF8A8A"), TextColors.white)
-            WARN  -> LogStyle(rgb("#F6C177"), TextColors.white) // muted peach
-            INFO  -> LogStyle(rgb("#D0D0D0"), TextColors.white)
+            WARN -> LogStyle(rgb("#F6C177"), TextColors.white)
+            INFO -> LogStyle(rgb("#D0D0D0"), TextColors.white)
         }
     }
 
@@ -77,10 +77,10 @@ class MordantLogger : Logger {
         return id
     }
 
-    override fun working(message: String, id: String): String = log(LogStatus.WORK, message, id)
-    override fun error(message: String, id: String): String = log(LogStatus.ERROR, message, id)
-    override fun warn(message: String, id: String): String = log(LogStatus.WARN, message, id)
-    override fun info(message: String, id: String): String = log(LogStatus.INFO, message, id)
+    override fun working(message: String, id: String): String = log(WORK, message, id)
+    override fun error(message: String, id: String): String = log(ERROR, message, id)
+    override fun warn(message: String, id: String): String = log(WARN, message, id)
+    override fun info(message: String, id: String): String = log(INFO, message, id)
 
     override fun update(id: String, status: LogStatus) {
         val logIndex = logs.indexOfFirst { it.id == id }
@@ -92,5 +92,14 @@ class MordantLogger : Logger {
     override fun resolve(id: String) {
         val log = logs.find { it.id == id } ?: return
         update(id, log.status.resolve())
+    }
+
+    override fun failAll() {
+        logs.forEachIndexed { index, log ->
+            if (log.status != WORK)
+                return@forEachIndexed
+
+            update(log.id, FAIL)
+        }
     }
 }

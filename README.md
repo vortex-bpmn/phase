@@ -18,6 +18,7 @@ The settings file should at least contain the project name
 You can also attach custom files that will be written into the output directory,
 where `@source` and `@destination` are paths relative to the project directory
 and the output directory respectively.
+
 ```css
 @attachment
     @source README.md

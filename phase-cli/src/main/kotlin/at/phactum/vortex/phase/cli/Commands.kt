@@ -3,9 +3,6 @@ package at.phactum.vortex.phase.cli
 import at.phactum.vortex.phase.api.Constants
 import at.phactum.vortex.phase.api.base.Pipeline
 import at.phactum.vortex.phase.api.contract.Logger
-import at.phactum.vortex.phase.api.exception.PhaseException
-import at.phactum.vortex.phase.api.model.ProjectSettings
-import at.phactum.vortex.phase.api.model.ProjectStructure
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.Context
 import com.github.ajalt.clikt.parameters.arguments.argument
@@ -38,10 +35,10 @@ class InitCommand(val pipeline: Pipeline, val logger: Logger) : CliktCommand(nam
         val creatingProject = logger.working("Creating project $dir")
 
         dir.mkdirs()
-        File(dir, "${dir.name}.${Constants.PHASE_PROJECT_EXTENSION}")
-            .writeText(
-                "@project $name"
-            )
+        File(dir, "${dir.name}.${Constants.PHASE_PROJECT_EXTENSION}").writeText(
+            "@project $name"
+        )
+
         File(dir, "pages").mkdirs()
 
         File(dir, "pages/main.${Constants.PHASE_PAGE_EXTENSION}").writeText(
@@ -106,16 +103,7 @@ class InspectCommand(val pipeline: Pipeline, val logger: Logger) : CliktCommand(
         }
 
         val inspectingProject = logger.working("Inspecting project: ${projectDir.path}")
-        val structure: ProjectStructure
-        val settings: ProjectSettings
-        try {
-            val (struct, sett) = pipeline.scanProjectStructureAndParseSettings(projectDir)
-            structure = struct
-            settings = sett
-        } catch (e: PhaseException) {
-            logger.error(e.formattedMessage())
-            return
-        }
+        val (structure, settings) = pipeline.scanProjectStructureAndParseSettings(projectDir)
         logger.info("Project name: ${settings.name}")
         if (settings.attachments.isNotEmpty()) {
             logger.info("Attachments (${settings.attachments.size}):")
@@ -180,10 +168,6 @@ class BuildCommand(val pipeline: Pipeline, val logger: Logger) : CliktCommand(na
             return
         }
 
-        try {
-            pipeline.buildProject(projectDir, output)
-        } catch (e: PhaseException) {
-            logger.error(e.formattedMessage())
-        }
+        pipeline.buildProject(projectDir, output)
     }
 }

@@ -2,13 +2,13 @@ package at.phactum.vortex.phase.vortex
 
 import at.phactum.vortex.phase.api.base.TreeAttachment
 import at.phactum.vortex.phase.api.contract.Logger
-import at.phactum.vortex.phase.pipeline.SimplePipeline
+import at.phactum.vortex.phase.pipeline.StandardPipeline
 import at.phactum.vortex.phase.pipeline.StandardProjectScanner
 import at.phactum.vortex.phase.processor.StandardProcessor
 import at.phactum.vortex.phase.rendererimport.StandardHtmlRenderer
 import at.phactum.vortex.phase.treebuilder.StandardHtmlTreeBuilder
 
-class VortexHtmlPipeline(override val logger: Logger) : SimplePipeline(
+class VortexHtmlPipeline(override val logger: Logger) : StandardPipeline(
     logger,
     StandardProjectScanner(logger),
     StandardProcessor(logger),

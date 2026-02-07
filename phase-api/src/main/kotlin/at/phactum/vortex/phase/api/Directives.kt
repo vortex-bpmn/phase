@@ -1,7 +1,5 @@
 package at.phactum.vortex.phase.api
 
-import at.phactum.vortex.phase.api.ParsingContextType
-
 enum class DirectiveType(
     val identifier: String,
     val isCompound: Boolean,
@@ -10,6 +8,8 @@ enum class DirectiveType(
 ) {
     BLOCK("block", true, false),
     END("end", false, false, null),
+
+    FUNCTION_DEFINITION("function", true, true),
 
     META("meta", true, false),
     TITLE("title", false, true),
@@ -27,4 +27,7 @@ enum class DirectiveType(
     ATTACHMENT("attachment", true, false, ParsingContextType.PROJECT_FILE),
     ATTACHMENT_SOURCE("source", false, true, ParsingContextType.PROJECT_FILE),
     ATTACHMENT_DESTINATION("destination", false, true, ParsingContextType.PROJECT_FILE);
+
+    fun prefixed(): String = "@$identifier"
+
 }

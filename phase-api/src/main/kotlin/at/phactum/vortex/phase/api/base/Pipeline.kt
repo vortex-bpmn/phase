@@ -1,11 +1,11 @@
 package at.phactum.vortex.phase.api.base
 
 import at.phactum.vortex.phase.api.contract.Logger
-import at.phactum.vortex.phase.api.model.Block
 import at.phactum.vortex.phase.api.model.Page
 import at.phactum.vortex.phase.api.model.ProjectMetadata
 import at.phactum.vortex.phase.api.model.ProjectSettings
 import at.phactum.vortex.phase.api.model.ProjectStructure
+import at.phactum.vortex.phase.api.model.tree.RenderNode
 import java.io.File
 
 abstract class Pipeline(
@@ -17,6 +17,6 @@ abstract class Pipeline(
 ) {
     abstract fun buildProject(projectDir: File, outputDir: File)
     abstract fun scanProjectStructureAndParseSettings(projectDir: File): Pair<ProjectStructure, ProjectSettings>
-    abstract fun render(projectMetadata: ProjectMetadata, root: Block): String
+    abstract fun render(projectMetadata: ProjectMetadata, root: RenderNode.Container): String
     abstract fun render(page: Page): String
 }

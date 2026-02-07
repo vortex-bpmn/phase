@@ -1,12 +1,2 @@
 @project New Project
 
-@attachment
-	@source test
-	@destination dest
-@end
-
-@attachment
-	@source sample.txt
-	@destination another.html
-@end
-
